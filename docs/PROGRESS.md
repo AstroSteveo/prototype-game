@@ -3,11 +3,11 @@
 This document tracks milestone status, what’s done, and what’s next.
 
 ## Snapshot (Current Status)
-- Stack: Go 1.21; Makefile added; DEV guide added.
+- Stack: Go 1.21; Makefile added; DEV guide added; CI via GitHub Actions.
 - Services: `cmd/sim` (WS behind build tag), `cmd/gateway` (login + validate).
 - Core sim: tick loop, kinematics, local handover with hysteresis; dev HTTP endpoints.
 - WS transport: join handshake, input/state loop implemented under `-tags ws`.
-- Tests: spatial, engine, handover unit tests; WS integration test behind `-tags ws` passing.
+- Tests: spatial, engine, handover unit tests; WS integration test behind `-tags ws` passing; CI runs fmt/vet/unit and ws-tagged suites.
 
 Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-202.
 
@@ -43,6 +43,12 @@ Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-202.
 Commands:
 - Unit: `cd backend && go test ./...`
 - WS: `cd backend && go test -tags ws ./...`
+- CI (GitHub): runs on push/PR to `main` with `go fmt`, `go vet`, unit tests, and ws-tagged tests.
+
+## Tooling Updates
+- ENG-001: Added GitHub Actions workflow (`.github/workflows/ci.yml`) that formats, vets, and runs unit + ws-tagged tests.
+- ENG-002: Added PR template and CODEOWNERS under `.github/`.
+- ENG-003: Branch protection on `main` pending — see instructions in PR template and repo settings.
 
 ## How to Drive the Sim (Dev)
 See `docs/DEV.md` for Makefile-based workflows.

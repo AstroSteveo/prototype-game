@@ -7,6 +7,8 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
   - US-301 — Handover with hysteresis (M3)
   - US-201 — AOI visibility by radius (M2)
   - US-202 — Snapshot cadence and payload budget (M2) [Done]
+  - ENG-001 — GitHub Actions CI (Tooling)
+  - ENG-002 — PR template + CODEOWNERS (Tooling)
 - In Review
   - —
 - Done
@@ -24,6 +26,7 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
   - US-601 — Cross-node transfer (Stretch)
   - US-NF1 — Observability (Non-Functional)
   - US-NF2 — Security base (Non-Functional)
+  - ENG-003 — Branch protection on main (Tooling)
 
 ## Summary Table
 | ID      | Milestone       | Title                                      | Status       |
@@ -44,6 +47,13 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
 | US-601  | Stretch          | Cross-node transfer                        | Not Started  |
 | US-NF1  | Non-Functional   | Observability                              | Not Started  |
 | US-NF2  | Non-Functional   | Security base                              | Not Started  |
+
+## Engineering Tasks (Tooling)
+| ID       | Area     | Title                               | Status       |
+|----------|----------|-------------------------------------|--------------|
+| ENG-001  | CI/CD    | GitHub Actions (fmt, vet, tests)    | In Progress  |
+| ENG-002  | Hygiene  | PR template + CODEOWNERS            | In Progress  |
+| ENG-003  | Repo     | Branch protection on `main`         | Not Started  |
 
 Conventions
 - IDs: `US-<milestone><seq>` (e.g., `US-301` belongs to M3).
