@@ -3,13 +3,13 @@
 This document tracks milestone status, what’s done, and what’s next.
 
 ## Snapshot (Current Status)
-- Stack: Go 1.21; Makefile added; DEV guide added; CI via GitHub Actions.
+- Stack: Go 1.21; Makefile added; DEV guide added; CI via GitHub Actions; branch protection on main enforced.
 - Services: `cmd/sim` (WS behind build tag), `cmd/gateway` (login + validate).
 - Core sim: tick loop, kinematics, local handover with hysteresis; dev HTTP endpoints.
 - WS transport: join handshake, input/state loop implemented under `-tags ws`.
 - Tests: spatial, engine, handover unit tests; WS integration test behind `-tags ws` passing; CI runs fmt/vet/unit and ws-tagged suites.
 
-Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-202.
+Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-201, US-202.
 
 ## Milestones (from TDD)
 - M0 — Project skeleton: Completed
@@ -20,8 +20,8 @@ Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-202.
   - US-102 (spawn default): Done.
   - US-103 (movement + authoritative state): Done.
   - US-104 (telemetry): Done.
-- M2 — Interest Management (AOI streaming): In progress
-  - US-201 (AOI visibility): In Progress (another agent).
+- M2 — Interest Management (AOI streaming): Complete
+  - US-201 (AOI visibility): Done.
   - US-202 (snapshot cadence/budget): Done.
 - M3 — Local Sharding (in-process): In progress
   - Core: handover + hysteresis implemented and tested.
@@ -48,7 +48,7 @@ Commands:
 ## Tooling Updates
 - ENG-001: Added GitHub Actions workflow (`.github/workflows/ci.yml`) that formats, vets, and runs unit + ws-tagged tests.
 - ENG-002: Added PR template and CODEOWNERS under `.github/`.
-- ENG-003: Branch protection on `main` pending — see instructions in PR template and repo settings.
+- ENG-003: Enabled branch protection on `main` with required status checks.
 
 ## How to Drive the Sim (Dev)
 See `docs/DEV.md` for Makefile-based workflows.

@@ -33,3 +33,4 @@
 - **Ports:** gateway on `:8080`; sim on `:8081` (configurable).
 - **Auth:** gateway issues dev tokens; sim validates via `-gateway` URL.
 - **Local WS:** build with `-tags ws` to enable `/ws`; otherwise `/ws` returns 501.
+
