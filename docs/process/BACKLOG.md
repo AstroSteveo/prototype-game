@@ -157,3 +157,4 @@ Conventions
 - Prefer adding tests alongside each story before wiring the full feature.
 - Keep WS JSON messages minimal; evolve with versioned fields.
 - Guard borders with hysteresis to prevent thrash; document policy in config.
+

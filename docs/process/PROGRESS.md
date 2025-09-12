@@ -51,7 +51,7 @@ Commands:
 - ENG-003: Enabled branch protection on `main` with required status checks.
 
 ## How to Drive the Sim (Dev)
-See `docs/DEV.md` for Makefile-based workflows.
+See `docs/dev/DEV.md` for Makefile-based workflows.
 Key commands:
 - `make run` → start gateway and sim (WS enabled).
 - `make login` → acquire a token.
@@ -94,3 +94,4 @@ Key commands:
 - Tests: Engine kinematics test; WS integration asserts `ack >= 1` and motion. ✅
 - Docs/Tooling: Backlog marked Done; DEV guide and Makefile include probe and test instructions. ✅
 - Format/Vet/Tests: `make fmt vet test` and `make test-ws` green. ✅
+

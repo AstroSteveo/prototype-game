@@ -1,11 +1,11 @@
 # prototype-game
 
 Design docs:
-- `docs/GDD.md` — Game Design Document (vision, player experience, scope)
-- `docs/TDD.md` — Technical Design Document (architecture, sharding plan, milestones)
-- `docs/PROGRESS.md` — Running progress log with milestone status and next steps
-- `docs/BACKLOG.md` — Prioritized, testable user stories for MVP → stretch
- - `docs/DEV.md` — Developer Guide (build, run, tests, Makefile)
+- `docs/design/GDD.md` — Game Design Document (vision, player experience, scope)
+- `docs/design/TDD.md` — Technical Design Document (architecture, sharding plan, milestones)
+- `docs/process/PROGRESS.md` — Running progress log with milestone status and next steps
+- `docs/process/BACKLOG.md` — Prioritized, testable user stories for MVP → stretch
+- `docs/dev/DEV.md` — Developer Guide (build, run, tests, Makefile)
 
 Quick start (Go backend, local dev):
 - Makefile (recommended): `make run` then `make login`
