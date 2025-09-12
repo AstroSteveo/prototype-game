@@ -1,0 +1,8 @@
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+
+# Build artifacts
+backend/bin/
+
