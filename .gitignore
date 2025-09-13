@@ -6,3 +6,8 @@
 # Build artifacts
 backend/bin/
 
+# Artifacts from the Coder AI agent
+.code/
+
+# Godot MCP server - ignored because it's a paid plugin
+client/addons/gdai-mcp-plugin-godot/
