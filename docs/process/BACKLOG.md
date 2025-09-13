@@ -54,6 +54,7 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
 | ENG-001  | CI/CD    | GitHub Actions (fmt, vet, tests)    | Done         |
 | ENG-002  | Hygiene  | PR template + CODEOWNERS            | Done         |
 | ENG-003  | Repo     | Branch protection on `main`         | Done         |
+| ENG-004  | CI/CD    | Go 1.23 CI matrix + race tests      | Done         |
 
 Conventions
 - IDs: `US-<milestone><seq>` (e.g., `US-301` belongs to M3).

@@ -11,37 +11,81 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-test:
-    name: Build, Vet, Unit Tests
+  test:
+    name: Go ${{ matrix.go-version }} • ${{ matrix.target }} • race=${{ matrix.race }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [ '1.23.x' ]
+        target: [ unit, ws ]
+        race: [ false, true ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21.x'
-          cache: true
-      - name: Format (gofmt)
+          go-version: ${{ matrix.go-version }}
+
+      - name: Resolve Go cache paths
+        id: cache-paths
+        shell: bash
         run: |
-          make fmt
-          git diff --exit-code
-      - name: Vet
-        run: make vet
-      - name: Unit tests
-        run: make test
+          echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+          echo "GOMODCACHE=$(go env GOMODCACHE)" >> $GITHUB_ENV
 
-  ws-tests:
-    name: WS-Tagged Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Cache modules (GOMODCACHE)
+        uses: actions/cache@v4
         with:
-          go-version: '1.21.x'
-          cache: true
-      - name: WS tests (-tags ws)
-        run: make test-ws
+          path: ${{ env.GOMODCACHE }}
+          key: ${{ runner.os }}-gomod-${{ matrix.go-version }}-${{ hashFiles('backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod-${{ matrix.go-version }}-
 
+      - name: Cache build artifacts (GOCACHE)
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.GOCACHE }}
+          key: ${{ runner.os }}-gobuild-${{ matrix.go-version }}-${{ hashFiles('backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gobuild-${{ matrix.go-version }}-
+
+      - name: Go env
+        run: |
+          go version
+          go env GOCACHE GOMODCACHE
+
+      - name: Format (gofmt)
+        if: matrix.target == 'unit'
+        working-directory: backend
+        run: |
+          go fmt ./...
+          git diff --exit-code
+
+      - name: Vet
+        if: matrix.target == 'unit'
+        working-directory: backend
+        run: go vet ./...
+
+      - name: Tests (unit)
+        if: matrix.target == 'unit' && matrix.race == false
+        working-directory: backend
+        run: go test ./...
+
+      - name: Tests (unit, race)
+        if: matrix.target == 'unit' && matrix.race == true
+        working-directory: backend
+        run: go test -race ./...
+
+      - name: Tests (ws)
+        if: matrix.target == 'ws' && matrix.race == false
+        working-directory: backend
+        run: go test -tags ws ./...
+
+      - name: Tests (ws, race)
+        if: matrix.target == 'ws' && matrix.race == true
+        working-directory: backend
+        run: go test -race -tags ws ./...
