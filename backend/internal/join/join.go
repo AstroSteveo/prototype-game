@@ -2,7 +2,6 @@ package join
 
 import (
 	"context"
-	"errors"
 
 	"prototype-game/backend/internal/sim"
 	"prototype-game/backend/internal/spatial"
@@ -37,11 +36,6 @@ type ErrorMsg struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
-
-var (
-	ErrBadRequest = errors.New("bad_request")
-	ErrAuth       = errors.New("auth")
-)
 
 // HandleJoin performs auth, spawns/attaches the player, and builds a JoinAck.
 // It is transport-agnostic so we can test without websockets.
