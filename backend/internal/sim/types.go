@@ -37,4 +37,7 @@ type Config struct {
 	TickHz              int
 	SnapshotHz          int
 	HandoverHysteresisM float64
+	// Bots & density control
+	TargetDensityPerCell int // desired actors (players+bots) per cell
+	MaxBots              int // global cap across all cells
 }

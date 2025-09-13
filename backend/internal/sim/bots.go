@@ -15,6 +15,7 @@ const botSpeed = 1.5 // m/s
 type botState struct {
 	dir        spatial.Vec2
 	retargetAt time.Time
+	OwnedCell  spatial.CellKey
 }
 
 // maintainBotDensity no-op for now.
