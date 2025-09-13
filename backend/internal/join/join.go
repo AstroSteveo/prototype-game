@@ -55,16 +55,16 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	}
 	// TODO (M5): load last known position; for now default to origin.
 	pos := spatial.Vec2{}
-    eng.AddOrUpdatePlayer(pid, name, pos, spatial.Vec2{})
-    // Read player fields via snapshot accessor to avoid data races with the tick loop.
-    snap, _ := eng.GetPlayer(pid)
+	eng.AddOrUpdatePlayer(pid, name, pos, spatial.Vec2{})
+	// Read player fields via snapshot accessor to avoid data races with the tick loop.
+	snap, _ := eng.GetPlayer(pid)
 
-    cfg := eng.GetConfig()
-    ack := JoinAck{
-        PlayerID: snap.ID,
-        Pos:      snap.Pos,
-        Cell:     snap.OwnedCell,
-    }
+	cfg := eng.GetConfig()
+	ack := JoinAck{
+		PlayerID: snap.ID,
+		Pos:      snap.Pos,
+		Cell:     snap.OwnedCell,
+	}
 	ack.Config.TickHz = cfg.TickHz
 	ack.Config.SnapshotHz = cfg.SnapshotHz
 	ack.Config.AOIRadius = cfg.AOIRadius
