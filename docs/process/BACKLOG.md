@@ -6,6 +6,7 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
 - In Progress
   - US-301 — Handover with hysteresis (M3)
   - US-202 — Snapshot cadence and payload budget (M2) [Done]
+  - US-NF1 — Observability (Non-Functional)
 - In Review
   - —
 - Done
@@ -25,7 +26,6 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
   - US-501 — Save position and simple stat (M5)
   - US-502 — Reconnect flow and session resume (M5)
   - US-601 — Cross-node transfer (Stretch)
-  - US-NF1 — Observability (Non-Functional)
   - US-NF2 — Security base (Non-Functional)
 
 ## Summary Table
@@ -45,7 +45,7 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
 | US-501  | M5               | Save position and simple stat              | Not Started  |
 | US-502  | M5               | Reconnect flow and session resume          | Not Started  |
 | US-601  | Stretch          | Cross-node transfer                        | Not Started  |
-| US-NF1  | Non-Functional   | Observability                              | Not Started  |
+| US-NF1  | Non-Functional   | Observability                              | In Progress  |
 | US-NF2  | Non-Functional   | Security base                              | Not Started  |
 
 ## Engineering Tasks (Tooling)
@@ -157,4 +157,3 @@ Conventions
 - Prefer adding tests alongside each story before wiring the full feature.
 - Keep WS JSON messages minimal; evolve with versioned fields.
 - Guard borders with hysteresis to prevent thrash; document policy in config.
-

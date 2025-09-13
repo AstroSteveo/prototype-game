@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"prototype-game/backend/internal/join"
+	"prototype-game/backend/internal/metrics"
 	"prototype-game/backend/internal/sim"
 	"prototype-game/backend/internal/spatial"
 	transportws "prototype-game/backend/internal/transport/ws"
@@ -37,6 +38,9 @@ func main() {
 		gatewayURL = flag.String("gateway", "http://localhost:8080", "gateway base URL for token validation")
 	)
 	flag.Parse()
+
+	// Initialize Prometheus metrics registry and collectors
+	metrics.Init()
 
 	eng := sim.NewEngine(sim.Config{
 		CellSize:            *cellSize,
@@ -63,6 +67,13 @@ func main() {
 			HandoverHyster: *hysteresis,
 		})
 	})
+	// Simple JSON metrics for development/observability (prep for US-NF1)
+	mux.HandleFunc("/metrics.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(eng.MetricsSnapshot())
+	})
+	// Prometheus metrics endpoint
+	mux.Handle("/metrics", metrics.Handler())
 	// WebSocket endpoint (stub unless built with -tags ws)
 	auth := join.NewHTTPAuth(*gatewayURL)
 	transportws.Register(mux, "/ws", auth, eng)

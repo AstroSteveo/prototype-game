@@ -6,7 +6,9 @@ This document tracks milestone status, what’s done, and what’s next.
 - Stack: Go 1.21; Makefile added; DEV guide added; CI via GitHub Actions; branch protection on main enforced.
 - Services: `cmd/sim` (WS behind build tag), `cmd/gateway` (login + validate).
 - Core sim: tick loop, kinematics, local handover with hysteresis; dev HTTP endpoints.
-- WS transport: join handshake, input/state loop implemented under `-tags ws`.
+- WS transport: join handshake, input/state loop implemented under `-tags ws`; emits `handover` events on cell change.
+  - AOI continuity across borders validated by WS test (no duplicates; within next snapshot).
+  - Observability: Prometheus metrics exposed at `/metrics` (see below).
 - Tests: spatial, engine, handover unit tests; WS integration test behind `-tags ws` passing; CI runs fmt/vet/unit and ws-tagged suites.
 
 Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-201, US-202.
@@ -25,7 +27,8 @@ Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-201, 
   - US-202 (snapshot cadence/budget): Done.
 - M3 — Local Sharding (in-process): In progress
   - Core: handover + hysteresis implemented and tested.
-  - Pending: AOI rebuild + client handover event over transport.
+  - Update: client `handover` event surfaced over WS; AOI rebuild handled via 3×3 cell `QueryAOI`.
+  - Observability baseline added: tick time, snapshot bytes, AOI entity counts, WS connection gauge.
 - M4 — Bots & Density Targets: Pending (stub present)
 - M5 — Persistence: Pending
 
@@ -43,12 +46,16 @@ Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-201, 
 Commands:
 - Unit: `cd backend && go test ./...`
 - WS: `cd backend && go test -tags ws ./...`
+  - Includes `internal/transport/ws/handover_test.go` to validate `handover` emission.
+  - Includes `internal/transport/ws/aoi_continuity_test.go` to validate AOI across handover.
 - CI (GitHub): runs on push/PR to `main` with `go fmt`, `go vet`, unit tests, and ws-tagged tests.
 
 ## Tooling Updates
 - ENG-001: Added GitHub Actions workflow (`.github/workflows/ci.yml`) that formats, vets, and runs unit + ws-tagged tests.
 - ENG-002: Added PR template and CODEOWNERS under `.github/`.
 - ENG-003: Enabled branch protection on `main` with required status checks.
+ - Added Prometheus metrics endpoint at sim `/metrics`; JSON snapshot now at `/metrics.json`.
+   - Metrics include: `sim_tick_time_ms`, `ws_snapshot_bytes`, `sim_entities_in_aoi`, `sim_handover_latency_ms`, `ws_connected`, `sim_handovers_total`.
 
 ## How to Drive the Sim (Dev)
 See `docs/dev/DEV.md` for Makefile-based workflows.
@@ -56,6 +63,7 @@ Key commands:
 - `make run` → start gateway and sim (WS enabled).
 - `make login` → acquire a token.
 - `make wsprobe TOKEN=... [MOVE_X=1 MOVE_Z=0]` → join and optionally send input.
+ - `curl localhost:8081/metrics` → scrape Prometheus metrics; `curl localhost:8081/metrics.json` for dev JSON snapshot.
 
 ## Next Up
 - M2 (AOI streaming): entity sets and cadence at 10 Hz; budget checks.
@@ -94,4 +102,3 @@ Key commands:
 - Tests: Engine kinematics test; WS integration asserts `ack >= 1` and motion. ✅
 - Docs/Tooling: Backlog marked Done; DEV guide and Makefile include probe and test instructions. ✅
 - Format/Vet/Tests: `make fmt vet test` and `make test-ws` green. ✅
-

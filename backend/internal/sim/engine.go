@@ -4,8 +4,10 @@ import (
 	"context"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"prototype-game/backend/internal/metrics"
 	"prototype-game/backend/internal/spatial"
 )
 
@@ -16,6 +18,12 @@ type Engine struct {
 	players   map[string]*Player // id -> player
 	stopCh    chan struct{}
 	stoppedCh chan struct{}
+	// metrics (atomic)
+	met struct {
+		handovers   int64 // count of player handovers
+		aoiQueries  int64 // number of AOI queries executed
+		aoiEntities int64 // total entities returned across AOI queries
+	}
 }
 
 func NewEngine(cfg Config) *Engine {
@@ -52,7 +60,9 @@ func (e *Engine) loop() {
 		case <-e.stopCh:
 			return
 		case t := <-ticker.C:
+			start := time.Now()
 			e.tick(tickDur)
+			metrics.ObserveTickDuration(time.Since(start))
 			if t.Sub(lastSnap) >= snapDur {
 				e.snapshot()
 				lastSnap = t
@@ -218,5 +228,28 @@ func (e *Engine) QueryAOI(pos spatial.Vec2, radius float64, excludeID string) []
 			}
 		}
 	}
+	// metrics: record AOI query volume and total returned entities
+	atomic.AddInt64(&e.met.aoiQueries, 1)
+	atomic.AddInt64(&e.met.aoiEntities, int64(len(out)))
 	return out
+}
+
+// Metrics holds a snapshot of engine metrics.
+type Metrics struct {
+	Handovers        int64   `json:"handovers"`
+	AOIQueries       int64   `json:"aoi_queries"`
+	AOIEntitiesTotal int64   `json:"aoi_entities_total"`
+	AOIAvgEntities   float64 `json:"aoi_avg_entities"`
+}
+
+// MetricsSnapshot returns a copy of current counters.
+func (e *Engine) MetricsSnapshot() Metrics {
+	q := atomic.LoadInt64(&e.met.aoiQueries)
+	ent := atomic.LoadInt64(&e.met.aoiEntities)
+	ho := atomic.LoadInt64(&e.met.handovers)
+	avg := 0.0
+	if q > 0 {
+		avg = float64(ent) / float64(q)
+	}
+	return Metrics{Handovers: ho, AOIQueries: q, AOIEntitiesTotal: ent, AOIAvgEntities: avg}
 }
