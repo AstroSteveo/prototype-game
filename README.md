@@ -6,6 +6,7 @@ Design docs:
 - `docs/process/PROGRESS.md` — Running progress log with milestone status and next steps
 - `docs/process/BACKLOG.md` — Prioritized, testable user stories for MVP → stretch
 - `docs/dev/DEV.md` — Developer Guide (build, run, tests, Makefile)
+- `.github/copilot-instructions.md` — GitHub Copilot/AI agent instructions
 
 Quick start (Go backend, local dev):
 - Makefile (recommended): `make run` then `make login`
