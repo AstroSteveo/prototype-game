@@ -13,7 +13,7 @@
 - **Format & vet:** `cd backend && go fmt ./... && go vet ./...`
 
 ## Coding Style & Naming Conventions
-- **Language:** Go 1.21. Use `gofmt` defaults (tabs, standard import grouping).
+- **Language:** Go 1.23. Use `gofmt` defaults (tabs, standard import grouping).
 - **Packages:** short, lowercase (e.g., `sim`, `spatial`, `join`).
 - **Files & symbols:** lowercase file names; exported types/functions only when needed; prefer clear, short identifiers.
 - **Build tags:** WebSocket transport guarded by `//go:build ws` in `internal/transport/ws`.

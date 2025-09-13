@@ -3,7 +3,7 @@
 This document tracks milestone status, what’s done, and what’s next.
 
 ## Snapshot (Current Status)
-- Stack: Go 1.21; Makefile added; DEV guide added.
+- Stack: Go 1.23; Makefile added; DEV guide added.
 - Services: `cmd/sim` (WS behind build tag), `cmd/gateway` (login + validate).
 - Core sim: tick loop, kinematics, local handover with hysteresis; dev HTTP endpoints.
 - WS transport: join handshake, input/state loop implemented under `-tags ws`.
