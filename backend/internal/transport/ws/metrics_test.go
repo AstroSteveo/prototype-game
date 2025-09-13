@@ -31,7 +31,6 @@ func (fakeAuthM) Validate(ctx context.Context, token string) (string, string, bo
 
 // Ensures Prometheus metrics endpoint exposes ws_connected and reflects an open connection.
 func TestMetrics_WsConnectedGauge(t *testing.T) {
-	metrics.Init() // fresh registry for test
 
 	eng := sim.NewEngine(sim.Config{CellSize: 4, AOIRadius: 2, TickHz: 60, SnapshotHz: 20, HandoverHysteresisM: 0.25})
 	eng.Start()

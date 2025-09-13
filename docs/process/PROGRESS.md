@@ -3,13 +3,13 @@
 This document tracks milestone status, what’s done, and what’s next.
 
 ## Snapshot (Current Status)
-- Stack: Go 1.21; Makefile added; DEV guide added; CI via GitHub Actions; branch protection on main enforced.
+- Stack: Go 1.23; Makefile added; DEV guide added; CI via GitHub Actions; branch protection on main enforced.
 - Services: `cmd/sim` (WS behind build tag), `cmd/gateway` (login + validate).
 - Core sim: tick loop, kinematics, local handover with hysteresis; dev HTTP endpoints.
 - WS transport: join handshake, input/state loop implemented under `-tags ws`; emits `handover` events on cell change.
   - AOI continuity across borders validated by WS test (no duplicates; within next snapshot).
   - Observability: Prometheus metrics exposed at `/metrics` (see below).
-- Tests: spatial, engine, handover unit tests; WS integration test behind `-tags ws` passing; CI runs fmt/vet/unit and ws-tagged suites.
+- Tests: spatial, engine, handover unit tests; WS integration test behind `-tags ws` passing; CI runs fmt/vet/unit and ws-tagged suites with `-race` across a small matrix.
 
 Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-201, US-202.
 
@@ -48,10 +48,11 @@ Commands:
 - WS: `cd backend && go test -tags ws ./...`
   - Includes `internal/transport/ws/handover_test.go` to validate `handover` emission.
   - Includes `internal/transport/ws/aoi_continuity_test.go` to validate AOI across handover.
-- CI (GitHub): runs on push/PR to `main` with `go fmt`, `go vet`, unit tests, and ws-tagged tests.
+- CI (GitHub): runs on push/PR to `main` with `go fmt`, `go vet`, unit tests, and ws-tagged tests; Go 1.23 with module/build caching and race-enabled matrix.
 
 ## Tooling Updates
 - ENG-001: Added GitHub Actions workflow (`.github/workflows/ci.yml`) that formats, vets, and runs unit + ws-tagged tests.
+- ENG-004: CI updated to Go 1.23 with module/build cache and a test matrix that includes race-enabled runs.
 - ENG-002: Added PR template and CODEOWNERS under `.github/`.
 - ENG-003: Enabled branch protection on `main` with required status checks.
  - Added Prometheus metrics endpoint at sim `/metrics`; JSON snapshot now at `/metrics.json`.
