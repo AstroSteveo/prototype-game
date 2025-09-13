@@ -21,7 +21,7 @@ jobs:
           # Set this after creating the user/org-level Project
           # Example (user project): https://github.com/users/AstroSteveo/projects/1
           # Example (org project):  https://github.com/orgs/<org>/projects/1
-          project-url: ${{ env.PROJECT_URL }}
+          project-url: ${{ vars.PROJECT_URL }}
           github-token: ${{ secrets.PROJECTS_TOKEN }}
           labeled: story, bug, task
           # If unlabeled, items won’t be added; adjust as desired
