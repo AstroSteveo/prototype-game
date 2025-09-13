@@ -1,0 +1,102 @@
+Okay, I understand the problem. The `make run` command is failing because of incorrect pathing when running the services in a subshell, and the health check is not robust enough to catch the failure.
+
+First, I will read the `Makefile` to formulate a precise patch.Of course. The `Makefile` has pathing errors and a non-strict health check. Here is a minimal patch to fix the `run-*` targets and harden `wait-up`.
+
+I will apply the following changes:
+1.  Modify the `run-gateway` and `run-sim` targets to correctly handle paths by running the server processes within a subshell scoped to the `backend` directory. This ensures logs and PID files are created in `backend/logs` and `backend/.pids` respectively.
+2.  Replace the `wait-up` target with a more robust version that waits for both services to be healthy and will exit with an error if they do not start within a 10-second timeout.My apologies, I am currently operating in a read-only mode and cannot apply the changes directly.
+
+Here is the patch to fix the pathing issues and harden the health checks.
+
+### Proposed Makefile Patch
+
+Please apply the following changes to your `Makefile`:
+
+```diff
+--- a/Makefile
++++ b/Makefile
+@@ -38,21 +38,23 @@
+ 	cd $(BACKEND) && go build -o bin/wsprobe ./cmd/wsprobe
+ 
+ run-gateway:
+-	mkdir -p $(PIDDIR) $(LOGDIR)
+-	cd $(BACKEND) && nohup go run ./cmd/gateway -port $(GATEWAY_PORT) -sim localhost:$(SIM_PORT) > $(LOGDIR)/gateway.log 2>&1 & echo $$! > $(PIDDIR)/gateway.pid ; \
+-	echo "gateway running on :$(GATEWAY_PORT) (pid $$(cat $(PIDDIR)/gateway.pid))"
++	mkdir -p $(PIDDIR) $(LOGDIR)
++	@(cd $(BACKEND); nohup go run ./cmd/gateway -port $(GATEWAY_PORT) -sim localhost:$(SIM_PORT) > logs/gateway.log 2>&1 & echo $$! > .pids/gateway.pid)
++	@echo "gateway running on :$(GATEWAY_PORT) (pid $$(cat $(PIDDIR)/gateway.pid))"
+ 
+ run-sim:
+-	mkdir -p $(PIDDIR) $(LOGDIR)
+-	cd $(BACKEND) && nohup go run -tags ws ./cmd/sim -port $(SIM_PORT) > $(LOGDIR)/sim.log 2>&1 & echo $$! > $(PIDDIR)/sim.pid ; \
+-	echo "sim running on :$(SIM_PORT) (pid $$(cat $(PIDDIR)/sim.pid))"
++	mkdir -p $(PIDDIR) $(LOGDIR)
++	@(cd $(BACKEND); nohup go run -tags ws ./cmd/sim -port $(SIM_PORT) > logs/sim.log 2>&1 & echo $$! > .pids/sim.pid)
++	@echo "sim running on :$(SIM_PORT) (pid $$(cat $(PIDDIR)/sim.pid))"
+ 
+ wait-up:
+ 	@echo "waiting for services..."
+-	@for i in {1..50}; do curl -sf $(GATEWAY_URL)/healthz >/dev/null 2>&1 && break || sleep 0.1; done
+-	@for i in {1..50}; do curl -sf $(SIM_URL)/healthz >/dev/null 2>&1 && break || sleep 0.1; done
+-	@echo "services healthy"
++	@tries=100; \
++	while [ $$tries -gt 0 ]; do \
++		if curl -sf $(GATEWAY_URL)/healthz >/dev/null 2>&1 && curl -sf $(SIM_URL)/healthz >/dev/null 2>&1; then \
++			echo "services healthy"; \
++			exit 0; \
++		fi; \
++		tries=$$(($$tries - 1)); \
++		sleep 0.1; \
++	done; \
++	echo "ERROR: services failed to start after 10 seconds."; \
++	exit 1
+ 
+ run: run-gateway run-sim wait-up
+ 	@echo "gateway: $(GATEWAY_URL)  sim: $(SIM_URL)"
+
+```
+
+### Rationale
+
+1.  **Path Correction:** The original `run-gateway` and `run-sim` targets executed `cd backend` but continued to use `$(LOGDIR)` (`backend/logs`) and `$(PIDDIR)` (`backend/.pids`) for redirection. This created invalid paths like `backend/backend/logs/gateway.log`. The fix wraps the `go run` command in a `(cd backend; ...)` subshell and uses relative paths (`logs/gateway.log`, `.pids/gateway.pid`) within it, ensuring files are written to the correct locations.
+2.  **Robust Health Check:** The `wait-up` target has been replaced with a script that attempts to reach both `/healthz` endpoints for up to 10 seconds. It will only succeed if both services become healthy. If the timeout is reached, it will print an error and exit with a non-zero status, causing `make run` to fail as expected.
+
+### Verification Script
+
+After applying the patch, you can verify the fix with the following commands from your repository root:
+
+```bash
+# 1. Clean up previous runs and start services
+make clean && make run
+
+# 2. Check that services are reachable (should print "ok")
+curl -s http://localhost:8080/healthz && echo
+curl -s http://localhost:8081/healthz && echo
+
+# 3. Verify logs were created and contain content
+echo "--- Gateway Log ---"
+tail backend/logs/gateway.log
+echo "--- Sim Log ---"
+tail backend/logs/sim.log
+
+# 4. Verify PIDs are correct and processes are running
+echo "--- Process Status ---"
+ps -p $(cat backend/.pids/gateway.pid)
+ps -p $(cat backend/.pids/sim.pid)
+
+# 5. Stop the services
+make stop
+
+# 6. Verify services are stopped (should fail to connect)
+echo "--- Health Check After Stop ---"
+curl -s http://localhost:8080/healthz || echo "Gateway is down as expected."
+curl -s http://localhost:8081/healthz || echo "Sim is down as expected."
+```
+
+### Follow-up Improvements
+
+For even greater stability, I recommend these additional improvements:
+
+1.  **Use `go build`:** Instead of `go run`, modify the `run-*` targets to first `make build` the binaries into the `backend/bin` directory and then execute them directly. This provides more predictable process behavior and separates the build step from the run step.
+2.  **Safer PID Capture:** The `echo $!` method for capturing PIDs can be fragile. A small wrapper script that starts the process and reliably writes the child's PID to a file would be more robust.
+3.  **Use `set -e`:** Add `set -e` to the beginning of multi-line shell scripts within Make targets to ensure that the script exits immediately if any command fails.

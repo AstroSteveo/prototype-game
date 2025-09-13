@@ -1,0 +1,134 @@
+Of course. As a planning agent, my role is to produce a comprehensive implementation plan. Based on the repository's current state and the goals outlined in `AGENTS.md` and the project backlog, here is a high-leverage, sequenced plan to guide development from M3 to M5 and incorporate critical non-functional requirements.
+
+First, I will analyze the key documents and code to ensure my plan is grounded in the current reality of the project.
+
+
+.
+
+This is an excellent foundation. The documentation is clear and the `Makefile` provides the necessary workflows. The backlog is well-defined. Based on this, I can construct a concrete and actionable plan.
+
+Here is the implementation plan to complete milestones M3, M4, M5, and critical non-functional requirements.
+
+---
+
+### **Project Implementation Plan: M3-M5 & Non-Functional**
+
+This plan outlines a 4-week sequenced approach for a single developer to deliver the next major features. It prioritizes core gameplay mechanics, followed by features for world density, persistence, and essential hardening.
+
+**CI Gates:** All pull requests *must* pass `make fmt vet test test-ws` before merging.
+
+---
+
+### **Phase 1: Solidify Core Gameplay (Target: Week 1)**
+
+**Goal:** Complete M3 by finalizing handovers and implementing contiguous AOI. This ensures the core spatial partitioning and world navigation experience is seamless and robust.
+
+**Task 1.1: Finalize Hysteresis Handovers (US-301)**
+*   **Intent:** Prevent entity "thrashing" between cells when a player moves along a border. The `handovers_test.go` suggests this is in progress.
+*   **Concrete Changes:**
+    *   `backend/internal/sim/handovers.go`: Review and complete the handover logic to strictly respect the hysteresis `H` value from the TDD.
+    *   `backend/internal/sim/engine.go`: Ensure the main tick loop correctly calls the handover check.
+*   **Acceptance Criteria:**
+    *   A player moving back and forth across a cell border within the hysteresis band (`< H` meters into the new cell) does not trigger a handover.
+    *   A handover is only triggered once the player is firmly inside the new cell (position `> H` meters past the border).
+*   **Tests:**
+    *   **Unit (`handovers_test.go`):** Add a table-driven test case simulating a player moving along a border to verify the thrashing is prevented.
+
+**Task 1.2: Implement Contiguous AOI (US-302)**
+*   **Intent:** Eliminate entity pop-in at cell borders by ensuring a player's Area of Interest is a single, contiguous view across their current cell and all its neighbors.
+*   **Concrete Changes:**
+    *   `backend/internal/sim/engine.go`: Modify the AOI query logic. Instead of a simple radius query from the player's position, the query must first identify the 3x3 grid of cells around the player's current cell, gather all entities from those 9 cells, and then filter by radius.
+    *   `backend/internal/spatial/spatial.go`: Add a helper function `Neighbors3x3(cellKey)` that returns the keys of the 8 neighbors plus the center cell.
+*   **Acceptance Criteria:**
+    *   A player standing at the edge of a cell can see entities in the adjacent cell if they are within the `AOI_RADIUS`.
+    *   The `state` message contains entities from multiple cells seamlessly.
+*   **Tests:**
+    *   **Unit (`spatial_test.go`):** Test the `Neighbors3x3` helper for correctness at world origin, edges, and corners.
+    *   **Integration (`engine_test.go`):** Create a test scenario with two entities in adjacent cells. Place a player in the first cell near the border and assert that the AOI query correctly returns both entities.
+
+---
+
+### **Phase 2: World Density & Observability (Target: Week 2)**
+
+**Goal:** Implement M4 (Bots) to add life and load to the simulation, and simultaneously add baseline observability (US-NF1) to measure performance. These are parallelizable.
+
+**Task 2.1: Implement Bot Spawner & Behavior (US-401, US-402)**
+*   **Intent:** Dynamically spawn and despawn simple AI agents to meet a target density per cell, making the world feel populated and providing a baseline for load testing.
+*   **Concrete Changes:**
+    *   `backend/internal/sim/bots.go`: Implement the bot's "wander" state machine logic as described in the TDD.
+    *   `backend/internal/sim/engine.go`: In the main tick loop, add a call to a new function `maintainBotDensity()` that checks each active cell's population and spawns/despawns bots to match the configured density.
+    *   `backend/cmd/sim/main.go`: Add command-line flags or a config file to set bot density targets.
+*   **Acceptance Criteria:**
+    *   Bots are spawned in cells with players to meet a minimum density.
+    *   Bots wander within their cell boundaries.
+    *   Bots are visible to players via `wsprobe` and appear in `state` snapshots.
+*   **Tests:**
+    *   **Unit (`bots_test.go`):** Test the bot's state machine logic (e.g., `updateBot` function) with a deterministic seed.
+    *   **Integration (`engine_test.go`):** Test the `maintainBotDensity` logic to ensure it correctly adjusts bot counts over several ticks.
+
+**Task 2.2: Add Foundational Observability (US-NF1)**
+*   **Intent:** Expose key performance indicators via a standard `/metrics` endpoint.
+*   **Concrete Changes:**
+    *   `backend/go.mod`: Add the Prometheus client library: `go get github.com/prometheus/client_golang`.
+    *   `backend/cmd/sim/main.go`: Add a new HTTP handler on a separate port or path (e.g., `/metrics`) to expose the Prometheus metrics.
+    *   `backend/internal/sim/engine.go`: Instrument the tick loop to record metrics.
+    *   `backend/internal/transport/ws/register_ws.go`: Instrument connection handling.
+*   **Observability Checklist (Metrics):**
+    *   `sim_tick_duration_seconds` (Histogram): To measure tick performance.
+    *   `sim_handovers_total` (Counter): To count handover events.
+    *   `sim_entities_total` (Gauge): To track total entities in the simulation.
+    *   `ws_connections_active` (Gauge): To monitor connected players.
+*   **Acceptance Criteria:**
+    *   The `sim` service exposes a `/metrics` endpoint with the specified metrics in Prometheus format.
+*   **Tests:**
+    *   Manual verification: Run the `sim` service and `curl` the `/metrics` endpoint to confirm metrics are present and updating.
+
+---
+
+### **Phase 3: Persistence & Security (Target: Weeks 3-4)**
+
+**Goal:** Implement M5 for player state persistence and add baseline security hardening (US-NF2). This is the most complex phase and requires careful data handling.
+
+**Task 3.1: Implement Player State Persistence (US-501, US-502)**
+*   **Intent:** Save a player's position and stats upon disconnect so they can resume their session later.
+*   **Concrete Changes:**
+    *   **Migration Strategy:** The join flow will change. The `hello` message remains the same, but the server-side `HandleJoin` function will now be responsible for loading data before spawning the player. This is a server-only change; no client protocol change is needed for MVP.
+    *   `backend/go.mod`: Add a lightweight DB driver. `go get github.com/mattn/go-sqlite3`.
+    *   `backend/internal/persistence/store.go`: Create a new package. Define a `Store` interface and an SQLite implementation. Methods: `SavePlayer(player) error`, `LoadPlayer(playerID) (Player, error)`.
+    *   `backend/internal/sim/engine.go`: On player disconnect, call `store.SavePlayer()`.
+    *   `backend/internal/join/join.go`: In `HandleJoin`, after validating the token, call `store.LoadPlayer()` to get the player's last state. If not found, create a new player at the default spawn.
+*   **Acceptance Criteria:**
+    *   A player who disconnects and reconnects appears at their last saved position.
+*   **Tests:**
+    *   **Unit (`persistence/store_test.go`):** Test the Save/Load functions using an in-memory SQLite database.
+    *   **Integration (`make e2e-move` style):** Create a new `make` target or script that runs `wsprobe` to connect, move, disconnect, then reconnects and verifies the new position is loaded correctly.
+
+**Task 3.2: Baseline Security Hardening (US-NF2)**
+*   **Intent:** Add essential security measures to prevent common issues like stale connections and speed hacking.
+*   **Concrete Changes:**
+    *   `backend/internal/transport/ws/register_ws.go`:
+        *   Implement a WebSocket heartbeat. Use the `nhooyr.io/websocket` Ping support. Set a read timeout on the connection that is reset on receiving a Pong or any other client message. If the timeout is hit, close the connection.
+    *   `backend/internal/sim/engine.go`:
+        *   In the input processing logic, add a velocity clamp. After applying user input to the player's velocity vector, check its magnitude and clamp it to a server-defined maximum speed.
+    *   `backend/internal/join/join.go`:
+        *   Double-check that the `AuthService.Validate` call is strictly enforced and that no player can be created or added to the simulation without a valid token.
+*   **Acceptance Criteria:**
+    *   Clients that don't respond to pings are disconnected within the timeout period.
+    *   Player movement speed is capped by the server.
+    *   A WS connection attempt without a valid token is rejected.
+*   **Tests:**
+    *   **Unit (`engine_test.go`):** Test the velocity clamping logic.
+    *   **Integration (`ws_integration_test.go`):**
+        *   Write a test that connects but does not send any messages, and assert that it is disconnected after the heartbeat timeout.
+        *   Write a test that attempts to join with an invalid token and assert the connection is closed with an auth error.
+
+---
+
+### **Risk Register & Mitigations**
+
+*   **Risk:** Performance degradation from 3x3 cell AOI query.
+    *   **Mitigation:** The current cell-based partitioning is designed for this. The primary mitigation is to benchmark the tick duration using the new observability metrics and optimize if it exceeds budget.
+*   **Risk:** Database dependency adds complexity and new failure modes (M5).
+    *   **Mitigation:** Start with file-based SQLite to avoid external service dependencies. Abstract the database behind a `Store` interface to make it swappable later. Add robust error handling and logging around all DB calls.
+*   **Risk:** Bot implementation causes high CPU load.
+    *   **Mitigation:** Make bot count and behavior complexity configurable. Use the `sim_tick_duration_seconds` metric to profile the impact of bots and adjust budgets accordingly.
