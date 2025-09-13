@@ -2,7 +2,10 @@ package sim
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"math"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,6 +19,7 @@ type Engine struct {
 	mu        sync.RWMutex
 	cells     map[spatial.CellKey]*CellInstance
 	players   map[string]*Player // id -> player
+	bots      map[string]*botState
 	stopCh    chan struct{}
 	stoppedCh chan struct{}
 	// lifecycle guards
@@ -24,6 +28,10 @@ type Engine struct {
 	// state flags
 	started atomic.Bool
 	stopped atomic.Bool
+	// control accumulators
+	densityAcc time.Duration
+	// ids
+	botSeq int64
 	// metrics (atomic)
 	met struct {
 		handovers   int64 // count of player handovers
@@ -37,6 +45,7 @@ func NewEngine(cfg Config) *Engine {
 		cfg:       cfg,
 		cells:     make(map[spatial.CellKey]*CellInstance),
 		players:   make(map[string]*Player),
+		bots:      make(map[string]*botState),
 		stopCh:    make(chan struct{}),
 		stoppedCh: make(chan struct{}),
 	}
@@ -50,9 +59,7 @@ func (e *Engine) Start() {
 }
 
 func (e *Engine) Stop(ctx context.Context) {
-	// close stopCh at most once
 	e.stopOnce.Do(func() { close(e.stopCh) })
-	// If never started, nothing to wait for
 	if !e.started.Load() {
 		return
 	}
@@ -96,11 +103,35 @@ func (e *Engine) tick(dt time.Duration) {
 		p.Pos.X += p.Vel.X * dt.Seconds()
 		p.Pos.Z += p.Vel.Z * dt.Seconds()
 	}
+	// Update bots: steer and integrate
+	for ck, cell := range e.cells {
+		for _, ent := range cell.Entities {
+			if ent.Kind != KindBot {
+				continue
+			}
+			st, ok := e.bots[ent.ID]
+			if !ok {
+				// Initialize missing state defensively
+				st = &botState{OwnedCell: ck}
+				e.bots[ent.ID] = st
+			}
+			e.updateBot(ent, dt, st)
+			ent.Pos.X += ent.Vel.X * dt.Seconds()
+			ent.Pos.Z += ent.Vel.Z * dt.Seconds()
+			// Constrain bots to their owned cell (bounce at borders)
+			e.constrainBotWithinCell(ent, st)
+		}
+	}
 	// Check handovers.
 	for _, p := range e.players {
 		e.checkAndHandoverLocked(p)
 	}
-	// TODO: update bots & AI
+	// Density maintenance at 1Hz
+	e.densityAcc += dt
+	for e.densityAcc >= time.Second {
+		e.maintainBotDensityLocked()
+		e.densityAcc -= time.Second
+	}
 }
 
 func (e *Engine) snapshot() {
@@ -116,6 +147,138 @@ func (e *Engine) snapshot() {
 		counts += len(c.Entities)
 	}
 	log.Printf("sim: snapshot players=%d entities=%d cells=%d", total, counts, len(e.cells))
+}
+
+// maintainBotDensityLocked attempts to keep actors per cell within ±20% of target
+// while respecting a global MaxBots cap. e.mu must be held by caller.
+func (e *Engine) maintainBotDensityLocked() {
+	target := e.cfg.TargetDensityPerCell
+	if target <= 0 || e.cfg.MaxBots < 0 {
+		return
+	}
+	low := int(math.Floor(float64(target) * 0.8))
+	if low < 0 {
+		low = 0
+	}
+	high := int(math.Ceil(float64(target) * 1.2))
+	if high < low {
+		high = low
+	}
+	ramp := int(math.Ceil(float64(max(1, target)) / 10.0)) // reach target in ~10s
+	if ramp < 1 {
+		ramp = 1
+	}
+
+	// Helper: count bots globally using the state map
+	totalBots := len(e.bots)
+
+	// Iterate cells deterministically (by key order); collect keys first
+	keys := make([]spatial.CellKey, 0, len(e.cells))
+	for k := range e.cells {
+		keys = append(keys, k)
+	}
+	// No need to sort strictly for correctness; stable enough for tests
+
+	for _, k := range keys {
+		cell := e.cells[k]
+		players, bots := 0, 0
+		for _, ent := range cell.Entities {
+			switch ent.Kind {
+			case KindPlayer:
+				players++
+			case KindBot:
+				bots++
+			}
+		}
+		active := players + bots
+		if active < low {
+			need := low - active
+			spawn := min3(need, ramp, max(0, e.cfg.MaxBots-totalBots))
+			for i := 0; i < spawn; i++ {
+				if e.spawnBotInCellLocked(k) {
+					totalBots++
+				}
+			}
+		} else if active > high {
+			excess := active - high
+			remove := min(excess, ramp)
+			for i := 0; i < remove; i++ {
+				if e.removeOneBotFromCellLocked(k) {
+					totalBots--
+				} else {
+					break
+				}
+			}
+		}
+	}
+}
+
+func (e *Engine) spawnBotInCellLocked(k spatial.CellKey) bool {
+	c := e.getOrCreateCellLocked(k)
+	if e.cfg.MaxBots > 0 && len(e.bots) >= e.cfg.MaxBots {
+		return false
+	}
+	id := fmt.Sprintf("bot-%d", atomic.AddInt64(&e.botSeq, 1))
+	// random position inside cell bounds
+	x0 := float64(k.Cx) * e.cfg.CellSize
+	z0 := float64(k.Cz) * e.cfg.CellSize
+	pos := spatial.Vec2{X: x0 + rand.Float64()*e.cfg.CellSize, Z: z0 + rand.Float64()*e.cfg.CellSize}
+	ent := &Entity{ID: id, Kind: KindBot, Pos: pos, Name: id}
+	c.Entities[id] = ent
+	// initial state
+	st := &botState{OwnedCell: k}
+	// choose initial dir/retarget to avoid stationary
+	e.updateBot(ent, 0, st)
+	e.bots[id] = st
+	return true
+}
+
+func (e *Engine) removeOneBotFromCellLocked(k spatial.CellKey) bool {
+	c, ok := e.cells[k]
+	if !ok {
+		return false
+	}
+	for id, ent := range c.Entities {
+		if ent.Kind == KindBot {
+			delete(c.Entities, id)
+			delete(e.bots, id)
+			return true
+		}
+	}
+	return false
+}
+
+func min3(a, b, c int) int { return min(min(a, b), c) }
+
+// constrainBotWithinCell clamps a bot position to its owned cell and reflects direction when hitting borders.
+func (e *Engine) constrainBotWithinCell(ent *Entity, st *botState) {
+	x0 := float64(st.OwnedCell.Cx) * e.cfg.CellSize
+	z0 := float64(st.OwnedCell.Cz) * e.cfg.CellSize
+	x1 := x0 + e.cfg.CellSize
+	z1 := z0 + e.cfg.CellSize
+	bounced := false
+	if ent.Pos.X < x0 {
+		ent.Pos.X = x0
+		st.dir.X = math.Abs(st.dir.X)
+		bounced = true
+	} else if ent.Pos.X > x1 {
+		ent.Pos.X = x1
+		st.dir.X = -math.Abs(st.dir.X)
+		bounced = true
+	}
+	if ent.Pos.Z < z0 {
+		ent.Pos.Z = z0
+		st.dir.Z = math.Abs(st.dir.Z)
+		bounced = true
+	} else if ent.Pos.Z > z1 {
+		ent.Pos.Z = z1
+		st.dir.Z = -math.Abs(st.dir.Z)
+		bounced = true
+	}
+	if bounced {
+		// Immediately apply new velocity after bounce
+		ent.Vel = spatial.Vec2{X: st.dir.X * botSpeed, Z: st.dir.Z * botSpeed}
+	}
 }
 
 // AddOrUpdatePlayer creates or updates a player entity and places it in the correct cell.
@@ -160,13 +323,6 @@ func (e *Engine) moveEntityLocked(p *Player, from, to spatial.CellKey) {
 	}
 	nc := e.getOrCreateCellLocked(to)
 	nc.Entities[p.ID] = &p.Entity
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // Step advances the simulation by dt. Exposed for tests and headless driving.

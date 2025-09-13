@@ -20,7 +20,6 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
   - ENG-002 — PR template + CODEOWNERS (Tooling)
   - ENG-003 — Branch protection on main (Tooling)
 - Not Started
-  - US-401 — Maintain target density per cell (M4)
   - US-402 — Simple wander + separation (M4)
   - US-501 — Save position and simple stat (M5)
   - US-502 — Reconnect flow and session resume (M5)
@@ -39,7 +38,7 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
 | US-202  | M2               | Snapshot cadence and payload budget        | Done         |
 | US-301  | M3               | Handover with hysteresis                   | In Progress  |
 | US-302  | M3               | Continuous AOI across borders              | Done         |
-| US-401  | M4               | Maintain target density per cell           | Not Started  |
+| US-401  | M4               | Maintain target density per cell           | Done         |
 | US-402  | M4               | Simple wander + separation                 | Not Started  |
 | US-501  | M5               | Save position and simple stat              | Not Started  |
 | US-502  | M5               | Reconnect flow and session resume          | Not Started  |
@@ -113,7 +112,7 @@ Conventions
 - US-401: Maintain target density per cell
   - As a player, if my vicinity is underpopulated, bots appear to reach a configured minimum.
   - Acceptance: cell maintains target within ±20% within 10s; global bot cap respected.
-  - Tests: density controller under churn; spawn/despawn bounds.
+  - Tests: density controller under churn; spawn/despawn bounds. Covered by `backend/internal/sim/density_test.go`.
 
 - US-402: Simple wander + separation
   - As a player, bots wander believably without clustering too tightly.
