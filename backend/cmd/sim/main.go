@@ -39,6 +39,11 @@ func main() {
 	)
 	flag.Parse()
 
+	// Validate configuration flags
+	if err := validateConfig(*cellSize, *aoiRadius, *tickHz, *snapshotHz, *hysteresis); err != nil {
+		log.Fatalf("sim: invalid configuration: %v", err)
+	}
+
 	// Initialize Prometheus metrics registry and collectors
 	metrics.Init()
 
@@ -146,4 +151,24 @@ func parseFloat(s string, def float64) float64 {
 		return def
 	}
 	return v
+}
+
+// validateConfig validates configuration parameters to prevent divide-by-zero and other issues
+func validateConfig(cellSize, aoiRadius float64, tickHz, snapshotHz int, hysteresis float64) error {
+	if cellSize <= 0 {
+		return fmt.Errorf("cell size must be > 0, got %.2f", cellSize)
+	}
+	if aoiRadius < 0 {
+		return fmt.Errorf("AOI radius must be >= 0, got %.2f", aoiRadius)
+	}
+	if tickHz < 1 {
+		return fmt.Errorf("tick rate must be >= 1 Hz, got %d", tickHz)
+	}
+	if snapshotHz < 1 {
+		return fmt.Errorf("snapshot rate must be >= 1 Hz, got %d", snapshotHz)
+	}
+	if hysteresis < 0 {
+		return fmt.Errorf("handover hysteresis must be >= 0, got %.2f", hysteresis)
+	}
+	return nil
 }
