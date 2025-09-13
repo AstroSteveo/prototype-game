@@ -1,0 +1,499 @@
+Based on my comprehensive analysis of the repository, I'll now create a detailed implementation plan for completing milestones M3→M5 plus Non-Functional requirements.
+
+# Implementation Plan: M3→M5 + Non-Functional Requirements
+
+## Executive Summary
+This plan covers a 2-4 week implementation horizon to complete M3 (Local Sharding), M4 (Bots & Density), M5 (Persistence), and Non-Functional stories (Observability & Security). The plan follows Go 1.21 conventions, uses the established Makefile workflow, and maintains the WebSocket/JSON protocol established in M1-M2.
+
+## Current State Analysis
+- **Completed**: M0-M2 fully done (health checks, WS join, movement, telemetry, AOI visibility, snapshot cadence)
+- **In Progress**: M3 handover with hysteresis (core logic done, needs WS event + contiguous AOI)
+- **Not Started**: Bot density/wander (M4), persistence/reconnect (M5), observability metrics, security hardening
+
+## Phase-Sequenced Implementation Plan
+
+### Phase 1: Complete M3 - Local Sharding (Week 1, Days 1-3)
+
+#### US-301: Complete Handover with Hysteresis
+**Status**: Core logic done, needs client notification
+**Package**: `internal/transport/ws`
+**Files to modify**:
+- `internal/transport/ws/register_ws.go`
+- `internal/sim/engine.go` 
+- `internal/sim/types.go`
+
+**Tasks**:
+1. Add handover event tracking to Player struct in `internal/sim/types.go`:
+   - Add `LastHandover *HandoverEvent` field
+   - Create `HandoverEvent` struct with `From`, `To` CellKey and `Timestamp`
+
+2. Modify `internal/sim/engine.go`:
+   - Update `checkAndHandoverLocked()` to record handover events
+   - Add `GetPlayerHandoverEvent(id string) *HandoverEvent` method
+
+3. Update WebSocket handler in `internal/transport/ws/register_ws.go`:
+   - Check for handover events in state loop
+   - Send `{"type":"handover","from":[cx,cz],"to":[cx,cz]}` message
+   - Clear handover event after sending
+
+**Acceptance Criteria**:
+- ✅ Handover occurs only after H meters past border (already done)
+- Client receives handover event via WebSocket
+- No handover thrashing when pacing along border
+- Handover latency <250ms
+
+**Tests**:
+- Unit: Already exists in `handovers_test.go`
+- Integration: Add WS test in `internal/transport/ws/handover_ws_test.go` (with `//go:build ws`)
+- Manual: `make wsprobe` with movement across cell boundary
+
+---
+
+#### US-302: Continuous AOI Across Borders
+**Package**: `internal/sim`
+**Files to modify**:
+- `internal/sim/engine.go` - enhance QueryAOI
+
+**Tasks**:
+1. Verify AOI already queries 3x3 cells (it does per code review)
+2. Add comprehensive tests for border scenarios
+3. Ensure no duplicate entities in AOI results after handover
+
+**Acceptance Criteria**:
+- AOI continues showing entities across cell borders within radius
+- AOI rebuild completes within next snapshot after handover
+- No duplicate entity IDs in results
+
+**Tests**:
+- Unit: Add `internal/sim/aoi_handover_test.go` with border crossing scenarios
+- Integration: WS test with static entities near border
+- Verify with `make test` and `make test-ws`
+
+---
+
+### Phase 2: M4 - Bots & Density (Week 1, Days 4-5 + Week 2, Days 1-2)
+
+#### US-401: Maintain Target Density Per Cell
+**Package**: `internal/sim`
+**Files to modify**:
+- `internal/sim/bots.go` - implement density controller
+- `internal/sim/types.go` - add bot config
+- `internal/sim/engine.go` - call maintainBotDensity in tick
+
+**Tasks**:
+1. Add bot configuration to Config struct:
+   ```go
+   BotDensityMin    int     // min bots per cell
+   BotDensityMax    int     // max bots per cell  
+   BotGlobalCap     int     // global bot limit
+   ```
+
+2. Implement `maintainBotDensity()` in `bots.go`:
+   - Count current bots per cell
+   - Spawn if below min (respecting global cap)
+   - Despawn if above max
+   - Use simple increment/decrement (1 bot per tick)
+
+3. Add bot spawn/despawn methods:
+   - `spawnBot(cell *CellInstance) *Entity`
+   - `despawnBot(cell *CellInstance, id string)`
+
+**Acceptance Criteria**:
+- Cell maintains target within ±20% within 10s
+- Global bot cap respected
+- Bots have unique IDs (prefix "bot_")
+
+**Tests**:
+- Unit: `internal/sim/density_test.go` - test controller logic
+- Integration: spawn players, verify bot count adjusts
+- Performance: verify tick time stays <25ms with bots
+
+---
+
+#### US-402: Simple Wander + Separation  
+**Package**: `internal/sim`
+**Files to modify**:
+- `internal/sim/bots.go` - implement behavior
+- `internal/sim/engine.go` - update bots in tick
+
+**Tasks**:
+1. Enhance `botState` struct:
+   - Track per-bot state in map[string]*botState
+   - Store direction, retarget time, last separation time
+
+2. Implement `updateBot()` properly:
+   - Retarget direction every 3-7s (random)
+   - Clamp speed to configured BOT_SPEED
+   - Turn along border if approaching cell edge
+   - Apply separation if entity within 2m
+
+3. Add separation steering:
+   ```go
+   func applySeparation(bot *Entity, nearby []Entity) spatial.Vec2
+   ```
+
+**Acceptance Criteria**:
+- Direction changes every 3-7s
+- Speed clamped to 1.5 m/s
+- Bots avoid clustering (separation at <2m)
+- Bots stay within their cell
+
+**Tests**:
+- Unit: `internal/sim/bot_behavior_test.go` with deterministic RNG
+- Integration: observe bot movement patterns
+- Assert constraints (speed, cell bounds)
+
+---
+
+### Phase 3: M5 - Persistence (Week 2, Days 3-5)
+
+#### US-501: Save Position and Simple Stat
+**Package**: `internal/store` (new)
+**Files to create**:
+- `internal/store/store.go` - persistence interface
+- `internal/store/memory.go` - in-memory implementation
+- `internal/store/postgres.go` - PostgreSQL implementation (optional for MVP)
+
+**Tasks**:
+1. Define persistence interface:
+   ```go
+   type Store interface {
+       SavePlayer(ctx context.Context, p PlayerData) error
+       LoadPlayer(ctx context.Context, id string) (*PlayerData, error)
+   }
+   
+   type PlayerData struct {
+       ID         string
+       Name       string
+       LastPos    spatial.Vec2
+       LastCell   spatial.CellKey
+       SimpleStat int
+       LastSeen   time.Time
+   }
+   ```
+
+2. Implement in-memory store for MVP:
+   - Use sync.Map for thread-safe storage
+   - Persist to JSON file on shutdown (optional)
+
+3. Integrate with engine:
+   - Save on disconnect/handover/periodic
+   - Load on join (modify join.HandleJoin)
+
+**Acceptance Criteria**:
+- Position saved on disconnect
+- Reconnect restores within 1m of last position
+- Simple stat (e.g., distance_traveled) persists
+- Latency <2s for reconnect
+
+**Tests**:
+- Unit: `internal/store/store_test.go` - save/load/update
+- Integration: disconnect/reconnect flow test
+- Tolerance test: position within 1m
+
+---
+
+#### US-502: Reconnect Flow and Session Resume
+**Package**: `internal/join`, `internal/sim`
+**Files to modify**:
+- `internal/join/join.go` - check for existing session
+- `internal/sim/engine.go` - handle reconnect vs new join
+
+**Tasks**:
+1. Add session tracking:
+   - Track active sessions in engine
+   - Detect reconnect vs new join
+   - Clean up stale sessions (timeout)
+
+2. Modify join flow:
+   - Check if player already exists
+   - If yes: restore position, prevent duplicates
+   - If no: spawn at saved or default position
+
+3. Add heartbeat/timeout:
+   - Client sends periodic ack
+   - Server kicks after timeout
+   - Clean up on disconnect
+
+**Acceptance Criteria**:
+- Session reuse without duplicates
+- No ghost actors after reconnect
+- Clean rejoin if session expired
+
+**Tests**:
+- Unit: session management logic
+- Integration: simulate drop/reconnect
+- Verify single entity instance
+
+---
+
+### Phase 4: Non-Functional Requirements (Week 3)
+
+#### US-NF1: Observability
+**Package**: `internal/metrics` (new)
+**Files to create**:
+- `internal/metrics/metrics.go` - metrics collection
+- `internal/metrics/prometheus.go` - Prometheus exporter (optional)
+
+**Metrics to implement**:
+```go
+tick_time_ms         histogram
+snapshot_bytes       histogram  
+entities_in_aoi      gauge
+handover_latency_ms  histogram
+bot_count           gauge
+ws_connected        gauge
+ws_dropped          counter
+```
+
+**Tasks**:
+1. Create metrics package with interface
+2. Add metrics collection points:
+   - Engine tick timing
+   - Snapshot size calculation
+   - AOI query results
+   - Handover timing
+   - Connection tracking
+
+3. Expose metrics endpoint:
+   - Add `/metrics` to sim service
+   - Format as Prometheus or JSON
+
+**Acceptance Criteria**:
+- All specified metrics collected
+- Metrics endpoint returns in <50ms
+- Low overhead (<5% CPU)
+
+**Tests**:
+- Integration: scrape metrics, verify thresholds
+- Performance: measure overhead
+
+---
+
+#### US-NF2: Security Base
+**Package**: Various
+**Files to modify**:
+- `internal/sim/engine.go` - velocity validation
+- `internal/transport/ws/register_ws.go` - heartbeat timeout
+- `internal/join/auth_http.go` - token validation
+
+**Tasks**:
+1. Velocity validation:
+   - Reject inputs with impossible velocities (>10 m/s)
+   - Log violations for monitoring
+
+2. Heartbeat implementation:
+   - Expect client ack every 30s
+   - Disconnect after 60s silence
+   - Clean up resources
+
+3. Token improvements:
+   - Add expiration to tokens
+   - Rate limit login attempts
+   - Validate token format
+
+**Acceptance Criteria**:
+- Auth failures return proper errors
+- Heartbeat disconnects inactive clients
+- Velocity clamps enforced
+
+**Tests**:
+- Unit: auth failure paths
+- Integration: heartbeat timeout test
+- Security: velocity clamp verification
+
+---
+
+## Implementation Timeline
+
+### Week 1 (Parallelizable)
+**Stream A (Days 1-3)**: M3 Completion
+- Day 1: US-301 handover events (4h)
+- Day 2: US-302 contiguous AOI + tests (6h)
+- Day 3: Integration testing, bug fixes (4h)
+
+**Stream B (Days 4-5)**: M4 Bot Framework
+- Day 4: US-401 density controller (6h)
+- Day 5: US-402 wander behavior start (4h)
+
+### Week 2
+- Days 1-2: Complete M4 bots (8h)
+- Days 3-5: M5 persistence & reconnect (12h)
+
+### Week 3
+- Days 1-2: Observability (8h)
+- Days 3-4: Security hardening (8h)
+- Day 5: Integration testing, documentation (4h)
+
+---
+
+## Risk Register & Mitigations
+
+| Risk | Impact | Likelihood | Mitigation |
+|------|--------|------------|------------|
+| Handover causes state loss | High | Low | Comprehensive tests, state validation |
+| Bot density causes lag | Medium | Medium | Global cap, performance tests |
+| Persistence bottleneck | High | Low | Start with in-memory, add DB later |
+| Reconnect duplicates | High | Medium | Session tracking, cleanup logic |
+| Security vulnerabilities | High | Low | Input validation, rate limiting |
+
+---
+
+## Testing Strategy
+
+### Unit Tests (70% coverage target)
+- Run with: `make test`
+- New test files:
+  - `handover_event_test.go`
+  - `density_test.go`
+  - `bot_behavior_test.go`
+  - `store_test.go`
+  - `metrics_test.go`
+
+### Integration Tests
+- Run with: `make test-ws`
+- New test files:
+  - `handover_ws_test.go`
+  - `reconnect_ws_test.go`
+  - `security_ws_test.go`
+
+### Performance Tests
+- Target: 200 entities, <25ms tick
+- Bandwidth: <30KB/s per client
+- Handover: <250ms local
+
+### CI Gates
+All PRs must pass:
+```bash
+make fmt
+make vet  
+make test
+make test-ws
+```
+
+---
+
+## Migration Strategy
+
+### Protocol Changes (Backward Compatible)
+1. Add optional fields to existing messages:
+   - `handover` event (new message type)
+   - `bot_count` in telemetry
+   - `session_id` in join_ack
+
+2. Version negotiation:
+   - Client sends version in hello
+   - Server adapts response format
+
+### Schema Evolution
+- Start with in-memory store
+- Add PostgreSQL in separate PR
+- Use migrations for schema changes
+
+---
+
+## Observability Checklist
+
+### Metrics (Priority Order)
+1. ✅ tick_time_ms - P0, detect performance issues
+2. ✅ ws_connected - P0, track active connections  
+3. ✅ entities_in_aoi - P1, AOI efficiency
+4. ✅ handover_latency_ms - P1, sharding performance
+5. ✅ snapshot_bytes - P2, bandwidth monitoring
+6. ✅ bot_count - P2, density tracking
+7. ✅ ws_dropped - P2, connection stability
+
+### Logging
+- Rate-limited info logs for handovers
+- Warn if AOI query >10ms
+- Error for auth failures, crashes
+
+### Tracing (Future)
+- Handover span with phases
+- Join flow timing
+- Tick breakdown
+
+---
+
+## Security Notes
+
+### Authentication & Authorization
+- Token validation via gateway
+- Token expiration (1 hour)
+- Rate limiting (10 logins/min/IP)
+
+### Input Validation
+- Velocity clamping (max 10 m/s)
+- Message size limits (max 1KB)
+- Malformed input rejection
+
+### Connection Management
+- Heartbeat every 30s
+- Timeout after 60s silence
+- Resource cleanup on disconnect
+
+### Attack Mitigation
+- No direct DB access from client
+- Server-authoritative simulation
+- Input sanitization
+
+---
+
+## Execution Checklist
+
+### Per Story
+- [ ] Implementation matches acceptance criteria
+- [ ] Unit tests added and passing
+- [ ] Integration tests if applicable
+- [ ] `make fmt vet test` passes
+- [ ] `make test-ws` passes (if WS changes)
+- [ ] Update BACKLOG.md status
+- [ ] Update DEV.md if commands change
+- [ ] PR <300 LOC where practical
+
+### Per Milestone
+- [ ] All stories complete
+- [ ] Performance targets met
+- [ ] Documentation updated
+- [ ] Manual testing via wsprobe
+- [ ] Metrics/monitoring in place
+
+---
+
+## Success Criteria
+
+### M3 Complete When:
+- Handover events delivered to clients
+- AOI maintains visibility across borders
+- No state loss or duplicates
+- Tests green, <250ms handover latency
+
+### M4 Complete When:
+- Bots maintain density ±20%
+- Wander behavior observable
+- No performance degradation
+- Global cap enforced
+
+### M5 Complete When:
+- Position/stats persist
+- Reconnect works <2s
+- No duplicate entities
+- Session management clean
+
+### Non-Functional Complete When:
+- All metrics exposed
+- Security validations in place
+- Heartbeat/timeout working
+- Performance within budgets
+
+---
+
+## Next Steps (Immediate Actions)
+
+1. **Today**: Complete US-301 handover events
+2. **Tomorrow**: Implement US-302 contiguous AOI
+3. **End of Week**: M3 done, M4 bot framework started
+4. **Week 2**: Complete M4 bots, implement M5 persistence
+5. **Week 3**: Non-functional requirements, integration testing
+
+This plan provides a clear, executable path to reach the next milestones while maintaining code quality, test coverage, and performance targets. Each task is scoped to fit within reasonable PR sizes and includes specific acceptance criteria and test requirements.
