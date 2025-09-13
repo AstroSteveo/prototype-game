@@ -45,7 +45,7 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
 | US-501  | M5               | Save position and simple stat              | Not Started  |
 | US-502  | M5               | Reconnect flow and session resume          | Not Started  |
 | US-601  | Stretch          | Cross-node transfer                        | Not Started  |
-| US-NF1  | Non-Functional   | Observability                              | In Progress  |
+| US-NF1  | Non-Functional   | Observability                              | Done         |
 | US-NF2  | Non-Functional   | Security base                              | Not Started  |
 
 ## Engineering Tasks (Tooling)
