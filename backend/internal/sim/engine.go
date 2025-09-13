@@ -18,6 +18,12 @@ type Engine struct {
 	players   map[string]*Player // id -> player
 	stopCh    chan struct{}
 	stoppedCh chan struct{}
+	// lifecycle guards
+	startOnce sync.Once
+	stopOnce  sync.Once
+	// state flags
+	started atomic.Bool
+	stopped atomic.Bool
 	// metrics (atomic)
 	met struct {
 		handovers   int64 // count of player handovers
@@ -37,11 +43,19 @@ func NewEngine(cfg Config) *Engine {
 }
 
 func (e *Engine) Start() {
-	go e.loop()
+	e.startOnce.Do(func() {
+		e.started.Store(true)
+		go e.loop()
+	})
 }
 
 func (e *Engine) Stop(ctx context.Context) {
-	close(e.stopCh)
+	// close stopCh at most once
+	e.stopOnce.Do(func() { close(e.stopCh) })
+	// If never started, nothing to wait for
+	if !e.started.Load() {
+		return
+	}
 	select {
 	case <-e.stoppedCh:
 	case <-ctx.Done():
@@ -49,7 +63,10 @@ func (e *Engine) Stop(ctx context.Context) {
 }
 
 func (e *Engine) loop() {
-	defer close(e.stoppedCh)
+	defer func() {
+		e.stopped.Store(true)
+		close(e.stoppedCh)
+	}()
 	tickDur := time.Second / time.Duration(max(1, e.cfg.TickHz))
 	snapDur := time.Second / time.Duration(max(1, e.cfg.SnapshotHz))
 	ticker := time.NewTicker(tickDur)
