@@ -6,6 +6,10 @@
 # Build artifacts
 backend/bin/
 
+# Runtime artifacts
+backend/logs/
+backend/.pids/
+
 # Artifacts from the Coder AI agent
 .code/
 
