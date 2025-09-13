@@ -18,13 +18,21 @@ func (e *Engine) checkAndHandoverLocked(p *Player) {
 	if target == p.OwnedCell {
 		return
 	}
+
+	// Anti-thrash logic: if returning to the previous cell, require 2x hysteresis
+	hysteresis := e.cfg.HandoverHysteresisM
+	if target == p.PrevCell {
+		hysteresis *= 2.0 // Double hysteresis when returning to previous cell
+	}
+
 	// Verify past hysteresis threshold into target cell.
-	if crossedBeyondHysteresis(p.Pos, p.OwnedCell, target, e.cfg.CellSize, e.cfg.HandoverHysteresisM) {
+	if crossedBeyondHysteresis(p.Pos, p.OwnedCell, target, e.cfg.CellSize, hysteresis) {
 		// Capture timestamp immediately when handover condition is detected
 		// This ensures accurate latency measurement from detection to client notification
 		p.HandoverAt = time.Now()
 		old := p.OwnedCell
 		e.moveEntityLocked(p, old, target)
+		p.PrevCell = p.OwnedCell // Remember the cell we're leaving
 		p.OwnedCell = target
 		// metrics: record handover (logical ownership change)
 		atomic.AddInt64(&e.met.handovers, 1)
