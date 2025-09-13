@@ -121,7 +121,6 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 					lastAck = in.Seq
 				}
 			case <-ticker.C:
-				snapStart := time.Now()
 				// send state with AOI entities
 				p, ok := eng.GetPlayer(playerID)
 				if !ok {
@@ -129,8 +128,7 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 				}
 				// If player's owned cell changed since last snapshot, emit a handover event first
 				if p.OwnedCell != lastCell {
-					// approximate latency measurement for handover emission relative to snapshot cycle
-					metrics.ObserveHandoverLatency(time.Since(snapStart))
+					metrics.ObserveHandoverLatency(time.Since(p.HandoverAt))
 					hov := map[string]any{
 						"type": "handover",
 						"data": map[string]any{

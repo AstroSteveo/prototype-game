@@ -1,6 +1,10 @@
 package sim
 
-import "prototype-game/backend/internal/spatial"
+import (
+	"time"
+
+	"prototype-game/backend/internal/spatial"
+)
 
 type EntityKind int
 
@@ -20,9 +24,10 @@ type Entity struct {
 
 type Player struct {
 	Entity
-	OwnedCell spatial.CellKey
-	ConnID    string // placeholder for connection id
-	LastSeq   int
+	OwnedCell  spatial.CellKey
+	ConnID     string // placeholder for connection id
+	LastSeq    int
+	HandoverAt time.Time
 }
 
 type Config struct {
