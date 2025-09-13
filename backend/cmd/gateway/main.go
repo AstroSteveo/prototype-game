@@ -49,8 +49,9 @@ func (g *gateway) handleLogin(w http.ResponseWriter, r *http.Request) {
 		"token":     tok,
 		"player_id": s.PlayerID,
 		"sim": map[string]any{
-			"address":  g.simAddress,
-			"protocol": "http-json-dev", // placeholder until WS is added
+			"address":  "ws://" + g.simAddress + "/ws",
+			"protocol": "ws-json",
+			"version":  "1",
 		},
 	})
 }

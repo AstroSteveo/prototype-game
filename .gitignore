@@ -5,4 +5,6 @@
 
 # Build artifacts
 backend/bin/
+backend/.pids/
+backend/logs/
 

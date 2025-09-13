@@ -51,11 +51,13 @@ From the repo root:
 - Health checks:
   - `curl http://localhost:8080/healthz`
   - `curl http://localhost:8081/healthz`
-- Get token:
+- Get token and WebSocket URL:
   - With jq: `TOKEN=$(curl -s "http://localhost:8080/login?name=Dev" | jq -r .token)`
   - With Python: `TOKEN=$(curl -s "http://localhost:8080/login?name=Dev" | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')`
+  - Get WS URL from login response: `WS_URL=$(curl -s "http://localhost:8080/login?name=Dev" | python3 -c 'import sys,json; print(json.load(sys.stdin)["sim"]["address"])')`
 - WS probe CLI:
   - Join only: `cd backend && go run ./cmd/wsprobe -url ws://localhost:8081/ws -token "$TOKEN"`
+  - Using URL from login: `cd backend && go run ./cmd/wsprobe -url "$WS_URL" -token "$TOKEN"`
   - Move + state: `cd backend && go run ./cmd/wsprobe -url ws://localhost:8081/ws -token "$TOKEN" -move_x 1`
 
 ## Building Binaries
@@ -75,7 +77,7 @@ From the repo root:
 ## Useful Endpoints
 - Gateway:
   - `GET /healthz`
-  - `GET /login?name=YourName` → `{ token, player_id, sim }`
+  - `GET /login?name=YourName` → `{ token, player_id, sim: { address: "ws://host:port/ws", protocol: "ws-json", version: "1" } }`
   - `GET /validate?token=...` (used by sim for auth)
 - Sim:
   - `GET /healthz`
