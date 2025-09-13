@@ -1,0 +1,28 @@
+name: Add items to Game Roadmap project
+
+on:
+  issues:
+    types: [opened, labeled]
+  pull_request:
+    types: [opened, labeled]
+
+jobs:
+  add-to-project:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Add to project
+        uses: actions/add-to-project@v0.6.0
+        with:
+          # Set this after creating the user/org-level Project
+          # Example (user project): https://github.com/users/AstroSteveo/projects/1
+          # Example (org project):  https://github.com/orgs/<org>/projects/1
+          project-url: ${{ secrets.PROJECT_URL }}
+          github-token: ${{ secrets.PROJECTS_TOKEN }}
+          labeled: story, bug, task
+          # If unlabeled, items won’t be added; adjust as desired
+
