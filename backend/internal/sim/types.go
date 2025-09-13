@@ -25,9 +25,10 @@ type Entity struct {
 type Player struct {
 	Entity
 	OwnedCell  spatial.CellKey
+	PrevCell   spatial.CellKey // Previous cell for anti-thrash logic
+	HandoverAt time.Time
 	ConnID     string // placeholder for connection id
 	LastSeq    int
-	HandoverAt time.Time
 }
 
 type Config struct {

@@ -5,6 +5,13 @@
 
 # Build artifacts
 backend/bin/
+
+# Runtime artifacts
 backend/logs/
 backend/.pids/
 
+# Artifacts from the Coder AI agent
+.code/
+
+# Godot MCP server - ignored because it's a paid plugin
+client/addons/gdai-mcp-plugin-godot/

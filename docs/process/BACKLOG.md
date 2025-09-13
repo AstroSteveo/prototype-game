@@ -5,8 +5,6 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
 ## Status Board (Kanban Snapshot)
 - In Progress
   - US-301 — Handover with hysteresis (M3)
-  - US-202 — Snapshot cadence and payload budget (M2) [Done]
-  - US-NF1 — Observability (Non-Functional)
 - In Review
   - —
 - Done
@@ -15,11 +13,12 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
   - US-102 — Spawn at default or last known location (M1)
   - US-103 — Movement input and authoritative update (M1)
   - US-201 — AOI visibility by radius (M2)
+  - US-202 — Snapshot cadence and payload budget (M2)
+  - US-NF1 — Observability (Non-Functional)
   - ENG-001 — GitHub Actions CI (Tooling)
   - ENG-002 — PR template + CODEOWNERS (Tooling)
   - ENG-003 — Branch protection on main (Tooling)
 - Not Started
-  - US-202 — Snapshot cadence and payload budget (M2)
   - US-302 — Continuous AOI across borders (M3)
   - US-401 — Maintain target density per cell (M4)
   - US-402 — Simple wander + separation (M4)
