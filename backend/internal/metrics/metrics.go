@@ -81,8 +81,8 @@ func ensureInit() {
 
 // Handler returns an HTTP handler that serves Prometheus metrics.
 func Handler() http.Handler {
-    ensureInit()
-    return promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+	ensureInit()
+	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 }
 
 // Init initializes metrics. It is safe and idempotent.
