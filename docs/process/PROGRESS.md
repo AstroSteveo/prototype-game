@@ -11,7 +11,7 @@ This document tracks milestone status, what’s done, and what’s next.
   - Observability: Prometheus metrics exposed at `/metrics` (see below).
 - Tests: spatial, engine, handover unit tests; WS integration test behind `-tags ws` passing; CI runs fmt/vet/unit and ws-tagged suites with `-race` across a small matrix.
 
-Done stories (M0/M1/M2 so far): US-000, US-101, US-102, US-103, US-104, US-201, US-202.
+Done stories (M0–M3 so far): US-000, US-101, US-102, US-103, US-104, US-201, US-202, US-302.
 
 ## Milestones (from TDD)
 - M0 — Project skeleton: Completed
