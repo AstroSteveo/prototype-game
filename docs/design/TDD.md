@@ -1,6 +1,6 @@
 # Technical Design Document (TDD)
 
-For day-to-day dev commands (run, build, tests), see `docs/DEV.md`.
+For day-to-day dev commands (run, build, tests), see `docs/dev/DEV.md`.
 
 ## Architectural Overview
 - Gateway: handles auth, session lookup, and hands out connection details to the simulation service.
@@ -295,7 +295,8 @@ function updateBot(bot, dt):
   - Unit tests for core logic (e.g., engine, math, join/auth paths).
   - Integration tests where applicable (e.g., WS under `-tags ws`).
 - Tooling updated as needed (Makefile/scripts) and docs updated:
-  - Backlog status moved; tests/evidence noted in `docs/BACKLOG.md`.
-  - Developer commands or runbooks reflected in `docs/DEV.md`.
+  - Backlog status moved; tests/evidence noted in `docs/process/BACKLOG.md`.
+  - Developer commands or runbooks reflected in `docs/dev/DEV.md`.
 - Format and vet clean: `go fmt ./... && go vet ./...` with `go test ./...` green.
 - Security/safety considerations addressed (validate inputs, avoid panics, respect build tags).
+

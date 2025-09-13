@@ -1,6 +1,10 @@
 package sim
 
 import (
+	"sync/atomic"
+	"time"
+
+	"prototype-game/backend/internal/metrics"
 	"prototype-game/backend/internal/spatial"
 )
 
@@ -19,6 +23,10 @@ func (e *Engine) checkAndHandoverLocked(p *Player) {
 		old := p.OwnedCell
 		e.moveEntityLocked(p, old, target)
 		p.OwnedCell = target
+		p.HandoverAt = time.Now()
+		// metrics: record handover (logical ownership change)
+		atomic.AddInt64(&e.met.handovers, 1)
+		metrics.IncHandovers()
 	}
 }
 

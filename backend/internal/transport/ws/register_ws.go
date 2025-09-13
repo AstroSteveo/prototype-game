@@ -13,6 +13,7 @@ import (
 	"nhooyr.io/websocket/wsjson"
 
 	"prototype-game/backend/internal/join"
+	"prototype-game/backend/internal/metrics"
 	"prototype-game/backend/internal/sim"
 	"prototype-game/backend/internal/spatial"
 )
@@ -26,6 +27,10 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 			return
 		}
 		defer c.Close(nws.StatusNormalClosure, "bye")
+
+		// metrics: track connected clients
+		metrics.IncWSConnected()
+		defer metrics.DecWSConnected()
 
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
@@ -98,6 +103,7 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 		defer telemTicker.Stop()
 		lastAck := 0
 		playerID := ack.PlayerID
+		lastCell := ack.Cell // track last known owned cell to emit handover events
 		// movement speed meters/sec when intent vector length is 1
 		const moveSpeed = 3.0
 
@@ -120,7 +126,23 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 				if !ok {
 					return
 				}
+				// If player's owned cell changed since last snapshot, emit a handover event first
+				if p.OwnedCell != lastCell {
+					metrics.ObserveHandoverLatency(time.Since(p.HandoverAt))
+					hov := map[string]any{
+						"type": "handover",
+						"data": map[string]any{
+							"from": lastCell,
+							"to":   p.OwnedCell,
+						},
+					}
+					hctx, cancelH := context.WithTimeout(r.Context(), 2*time.Second)
+					_ = wsjson.Write(hctx, c, hov)
+					cancelH()
+					lastCell = p.OwnedCell
+				}
 				nearby := eng.QueryAOI(p.Pos, cfg.AOIRadius, p.ID)
+				metrics.ObserveEntitiesInAOI(len(nearby))
 				ents := make([]map[string]any, 0, len(nearby))
 				for _, e := range nearby {
 					ents = append(ents, map[string]any{
@@ -138,6 +160,10 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 						"player":   map[string]any{"id": p.ID, "pos": p.Pos, "vel": p.Vel},
 						"entities": ents,
 					},
+				}
+				// Observe snapshot payload size (JSON encoded)
+				if bs, err := json.Marshal(msg); err == nil {
+					metrics.ObserveSnapshotBytes(len(bs))
 				}
 				// short deadline to avoid blocking forever
 				wctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)

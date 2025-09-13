@@ -20,6 +20,7 @@ The repo includes a Makefile with common workflows.
   - `make wsprobe TOKEN=<value>`
 - Probe movement + state (sends one input and prints a state):
   - `make wsprobe TOKEN=<value> MOVE_X=1 MOVE_Z=0`
+  - Note: while moving, the server may emit `handover` events when the player crosses cell boundaries (see Protocol Notes below).
 - One-shot E2E (spins services up, tests, then stops):
   - Join: `make e2e-join`
   - Move: `make e2e-move`
@@ -69,6 +70,7 @@ From the repo root:
 ## Tests
 - Unit tests: `cd backend && go test ./...`
 - WS integration tests (require ws tag): `cd backend && go test -tags ws ./...`
+  - Includes tests for movement, telemetry, cadence, and handover events.
 
 ## Useful Endpoints
 - Gateway:
@@ -78,6 +80,8 @@ From the repo root:
 - Sim:
   - `GET /healthz`
   - `GET /config`
+  - `GET /metrics` (Prometheus text)
+  - `GET /metrics.json` → `{ handovers, aoi_queries, aoi_entities_total, aoi_avg_entities }`
   - `GET /ws` (WebSocket; available only when built with `-tags ws`)
   - Dev-only helpers:
     - `GET /dev/spawn?id=p123&name=Alice&x=0&z=0`
@@ -94,6 +98,13 @@ From the repo root:
 - No `state` messages after `input`:
   - The sim broadcasts `state` at `SnapshotHz` (default 10 Hz); wait up to a couple of ticks.
 
+## Protocol Notes
+- Messages from server:
+  - `join_ack { player_id, pos, cell, config }`
+  - `state { ack, player, entities[] }` at ~`SnapshotHz`
+  - `telemetry { tick_rate, rtt_ms }` at ~1 Hz
+  - `handover { from: {cx,cz}, to: {cx,cz} }` whenever the player’s owned cell changes (hysteresis applied)
+
 ## Project Layout (Quick Reference)
 - Gateway service: `backend/cmd/gateway`
 - Sim service: `backend/cmd/sim` (WebSocket handler behind `-tags ws`)
@@ -102,12 +113,12 @@ From the repo root:
 - Spatial math: `backend/internal/spatial`
 - WebSocket transport: `backend/internal/transport/ws`
 - CLI probe: `backend/cmd/wsprobe`
-- Backlog/TDD: `docs/BACKLOG.md`, `docs/TDD.md`
+- Backlog/TDD: `docs/process/BACKLOG.md`, `docs/design/TDD.md`
 
 ## Story Checklist (Copy into PR description)
 - [ ] Acceptance criteria implemented and exercised
 - [ ] Unit tests added/updated and passing (`make test`)
 - [ ] Integration tests added/updated if applicable (`make test-ws`)
-- [ ] Backlog updated (status, tests/evidence) in `docs/BACKLOG.md`
-- [ ] Developer docs updated if commands changed (`docs/DEV.md`)
+- [ ] Backlog updated (status, tests/evidence) in `docs/process/BACKLOG.md`
+- [ ] Developer docs updated if commands changed (`docs/dev/DEV.md`)
 - [ ] `go fmt`, `go vet`, and all tests pass
