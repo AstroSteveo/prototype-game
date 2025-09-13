@@ -29,7 +29,7 @@ Done stories (M0–M3 so far): US-000, US-101, US-102, US-103, US-104, US-201, U
   - Core: handover + hysteresis implemented and tested.
   - Update: client `handover` event surfaced over WS; AOI rebuild handled via 3×3 cell `QueryAOI`.
   - Observability baseline added: tick time, snapshot bytes, AOI entity counts, WS connection gauge.
-- M4 — Bots & Density Targets: Pending (stub present)
+- M4 — Bots & Density Targets: US-401 Done; US-402 Pending
 - M5 — Persistence: Pending
 
 ## Test Coverage
@@ -69,7 +69,7 @@ Key commands:
 ## Next Up
 - M2 (AOI streaming): entity sets and cadence at 10 Hz; budget checks.
 - M3: handover events surfaced over WS.
-- M4: bot density controller and wander behavior.
+- M4: bot density controller (Done) and wander behavior (Pending).
 - M5: persistence for position + simple stat.
 
 ## Decisions
