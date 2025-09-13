@@ -20,6 +20,7 @@ Quick start (Go backend, local dev):
 WebSocket (US-101)
 - Sim registers `/ws` endpoint. By default, it is a stub returning `501` until built with the `ws` build tag.
 - Enable WS: `go run -tags ws ./cmd/sim --gateway http://localhost:8080`
+- Login response includes WebSocket URL: `{ "sim": { "address": "ws://host:port/ws", "protocol": "ws-json", "version": "1" } }`
 - First message from client: `{"token":"..."}`. Server replies with `{"type":"join_ack","data":{...}}` or `{"type":"error",...}`.
 
 Notes:
