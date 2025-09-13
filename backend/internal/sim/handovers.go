@@ -20,10 +20,12 @@ func (e *Engine) checkAndHandoverLocked(p *Player) {
 	}
 	// Verify past hysteresis threshold into target cell.
 	if crossedBeyondHysteresis(p.Pos, p.OwnedCell, target, e.cfg.CellSize, e.cfg.HandoverHysteresisM) {
+		// Capture timestamp immediately when handover condition is detected
+		// This ensures accurate latency measurement from detection to client notification
+		p.HandoverAt = time.Now()
 		old := p.OwnedCell
 		e.moveEntityLocked(p, old, target)
 		p.OwnedCell = target
-		p.HandoverAt = time.Now()
 		// metrics: record handover (logical ownership change)
 		atomic.AddInt64(&e.met.handovers, 1)
 		metrics.IncHandovers()
