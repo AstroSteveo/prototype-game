@@ -106,7 +106,7 @@ func TestWS_HandoverEvent_EmittedOnCellChange(t *testing.T) {
 	}
 }
 
-// TestWS_HandoverAntiThrash_WithWebSocketContinuity tests that anti-thrashing works 
+// TestWS_HandoverAntiThrash_WithWebSocketContinuity tests that anti-thrashing works
 // through WebSocket and that state continuity is maintained.
 func TestWS_HandoverAntiThrash_WithWebSocketContinuity(t *testing.T) {
 	// Small cells with 1.0 hysteresis for predictable testing
@@ -144,16 +144,16 @@ func TestWS_HandoverAntiThrash_WithWebSocketContinuity(t *testing.T) {
 	var joinAck struct {
 		Type string `json:"type"`
 		Data struct {
-			PlayerID string `json:"player_id"`
+			PlayerID string                 `json:"player_id"`
 			Pos      struct{ X, Z float64 } `json:"pos"`
-			Cell     struct{ Cx, Cz int } `json:"cell"`
+			Cell     struct{ Cx, Cz int }   `json:"cell"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(joinMsg, &joinAck); err != nil {
 		t.Fatalf("parse join_ack: %v", err)
 	}
-	
-	t.Logf("Joined at pos=(%.1f,%.1f) cell=(%d,%d)", 
+
+	t.Logf("Joined at pos=(%.1f,%.1f) cell=(%d,%d)",
 		joinAck.Data.Pos.X, joinAck.Data.Pos.Z, joinAck.Data.Cell.Cx, joinAck.Data.Cell.Cz)
 
 	// Send rapid back-and-forth movement that would cause thrashing without anti-thrash logic
@@ -171,7 +171,7 @@ func TestWS_HandoverAntiThrash_WithWebSocketContinuity(t *testing.T) {
 
 	for i, move := range movements {
 		t.Logf("Step %d: %s", i+1, move.desc)
-		
+
 		// Send movement input
 		if err := wsjson.Write(ctx, c, map[string]any{
 			"type":   "input",
@@ -208,7 +208,7 @@ func TestWS_HandoverAntiThrash_WithWebSocketContinuity(t *testing.T) {
 					To   struct{ Cx, Cz int }
 				}
 				if err := json.Unmarshal(env.Data, &body); err == nil {
-					t.Logf("  → Handover #%d: cell (%d,%d) → (%d,%d)", 
+					t.Logf("  → Handover #%d: cell (%d,%d) → (%d,%d)",
 						handoverCount, body.From.Cx, body.From.Cz, body.To.Cx, body.To.Cz)
 				}
 				break // Exit message loop for this movement step
@@ -218,9 +218,9 @@ func TestWS_HandoverAntiThrash_WithWebSocketContinuity(t *testing.T) {
 
 	// Verify anti-thrashing: should have fewer handovers than movements
 	t.Logf("Total handovers observed: %d (out of %d movement steps)", handoverCount, len(movements))
-	
+
 	// With anti-thrashing, we expect:
-	// 1. First eastward move: handover to (1,0) 
+	// 1. First eastward move: handover to (1,0)
 	// 2. Westward move: NO handover due to anti-thrash
 	// 3. Eastward again: NO handover (still in same cell)
 	// 4. Far westward: handover to (0,0) when overcoming double hysteresis
