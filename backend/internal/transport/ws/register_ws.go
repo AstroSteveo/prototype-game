@@ -46,12 +46,14 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 			_ = wsjson.Write(ctx, c, map[string]any{"type": "error", "error": join.ErrorMsg{Code: "bad_request", Message: "invalid hello"}})
 			return
 		}
-		// Handle join
+		// Handle join (resume is optional; token still required by AuthService)
 		ack, em := join.HandleJoin(r.Context(), auth, eng, hello)
 		if em != nil {
 			_ = wsjson.Write(ctx, c, map[string]any{"type": "error", "error": em})
 			return
 		}
+		// Issue resume token for future reconnects
+		ack.ResumeToken = defaultResume.Issue(ack.PlayerID)
 		if err := wsjson.Write(ctx, c, map[string]any{"type": "join_ack", "data": ack}); err != nil {
 			return
 		}
@@ -107,8 +109,17 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 		defer ticker.Stop()
 		telemTicker := time.NewTicker(telemetryDur)
 		defer telemTicker.Stop()
-        lastAck := 0
+		lastAck := 0
 		playerID := ack.PlayerID
+		// Validate resume token before trusting LastSeq
+		if hello.Resume != "" {
+			if resumePlayerID, ok := defaultResume.Lookup(hello.Resume); ok {
+				if resumePlayerID == playerID {
+					// Restore lastAck from hello.LastSeq when resume token is valid
+					lastAck = hello.LastSeq
+				}
+			}
+		}
 		lastCell := ack.Cell // track last known owned cell to emit handover events
 		// movement speed meters/sec when intent vector length is 1
 		const moveSpeed = 3.0
