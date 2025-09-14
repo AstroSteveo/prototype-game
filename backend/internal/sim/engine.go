@@ -20,7 +20,8 @@ type Engine struct {
 	cells     map[spatial.CellKey]*CellInstance
 	players   map[string]*Player // id -> player
 	bots      map[string]*botState
-	stopCh    chan struct{}<<<<<<< fix/engine-idempotent-stop-17
+	rng       *rand.Rand
+	stopCh    chan struct{}
 	stoppedCh chan struct{}
 	// lifecycle guards
 	startOnce sync.Once
@@ -46,6 +47,7 @@ func NewEngine(cfg Config) *Engine {
 		cells:     make(map[spatial.CellKey]*CellInstance),
 		players:   make(map[string]*Player),
 		bots:      make(map[string]*botState),
+		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 		stopCh:    make(chan struct{}),
 		stoppedCh: make(chan struct{}),
 	}
@@ -222,7 +224,7 @@ func (e *Engine) spawnBotInCellLocked(k spatial.CellKey) bool {
 	// random position inside cell bounds
 	x0 := float64(k.Cx) * e.cfg.CellSize
 	z0 := float64(k.Cz) * e.cfg.CellSize
-	pos := spatial.Vec2{X: x0 + rand.Float64()*e.cfg.CellSize, Z: z0 + rand.Float64()*e.cfg.CellSize}
+	pos := spatial.Vec2{X: x0 + e.rng.Float64()*e.cfg.CellSize, Z: z0 + e.rng.Float64()*e.cfg.CellSize}
 	ent := &Entity{ID: id, Kind: KindBot, Pos: pos, Name: id}
 	c.Entities[id] = ent
 	// initial state

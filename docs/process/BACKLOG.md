@@ -15,12 +15,13 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
   - US-201 — AOI visibility by radius (M2)
   - US-202 — Snapshot cadence and payload budget (M2)
   - US-302 — Continuous AOI across borders (M3)
+  - US-401 — Maintain target density per cell (M4)
+  - US-402 — Simple wander + separation (M4)
   - US-NF1 — Observability (Non-Functional)
   - ENG-001 — GitHub Actions CI (Tooling)
   - ENG-002 — PR template + CODEOWNERS (Tooling)
   - ENG-003 — Branch protection on main (Tooling)
 - Not Started
-  - US-402 — Simple wander + separation (M4)
   - US-501 — Save position and simple stat (M5)
   - US-502 — Reconnect flow and session resume (M5)
   - US-601 — Cross-node transfer (Stretch)
@@ -39,7 +40,7 @@ This backlog turns the GDD/TDD into testable stories. Each story has clear accep
 | US-301  | M3               | Handover with hysteresis                   | In Progress  |
 | US-302  | M3               | Continuous AOI across borders              | Done         |
 | US-401  | M4               | Maintain target density per cell           | Done         |
-| US-402  | M4               | Simple wander + separation                 | Not Started  |
+| US-402  | M4               | Simple wander + separation                 | Done         |
 | US-501  | M5               | Save position and simple stat              | Not Started  |
 | US-502  | M5               | Reconnect flow and session resume          | Not Started  |
 | US-601  | Stretch          | Cross-node transfer                        | Not Started  |

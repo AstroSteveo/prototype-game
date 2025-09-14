@@ -11,7 +11,7 @@ This document tracks milestone status, what’s done, and what’s next.
   - Observability: Prometheus metrics exposed at `/metrics` (see below).
 - Tests: spatial, engine, handover unit tests; WS integration test behind `-tags ws` passing; CI runs fmt/vet/unit and ws-tagged suites with `-race` across a small matrix.
 
-Done stories (M0–M3 so far): US-000, US-101, US-102, US-103, US-104, US-201, US-202, US-302.
+Done stories (M0–M4 so far): US-000, US-101, US-102, US-103, US-104, US-201, US-202, US-302, US-401, US-402.
 
 ## Milestones (from TDD)
 - M0 — Project skeleton: Completed
@@ -29,7 +29,7 @@ Done stories (M0–M3 so far): US-000, US-101, US-102, US-103, US-104, US-201, U
   - Core: handover + hysteresis implemented and tested.
   - Update: client `handover` event surfaced over WS; AOI rebuild handled via 3×3 cell `QueryAOI`.
   - Observability baseline added: tick time, snapshot bytes, AOI entity counts, WS connection gauge.
-- M4 — Bots & Density Targets: US-401 Done; US-402 Pending
+- M4 — Bots & Density Targets: US-401 Done; US-402 Done
 - M5 — Persistence: Pending
 
 ## Test Coverage
@@ -69,7 +69,7 @@ Key commands:
 ## Next Up
 - M2 (AOI streaming): entity sets and cadence at 10 Hz; budget checks.
 - M3: handover events surfaced over WS.
-- M4: bot density controller (Done) and wander behavior (Pending).
+- M4: bot density controller and wander behavior (Done).
 - M5: persistence for position + simple stat.
 
 ## Decisions
