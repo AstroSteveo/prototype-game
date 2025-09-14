@@ -32,8 +32,6 @@ func (m *ResumeManager) Issue(playerID string) string {
 		// If random number generation fails, do not issue a token.
 		return ""
 	}
-		return ""
-	}
 	tok := hex.EncodeToString(b[:])
 	m.data[tok] = resumeEntry{playerID: playerID, exp: time.Now().Add(m.ttl)}
 	return tok
