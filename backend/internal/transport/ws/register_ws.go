@@ -40,12 +40,14 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 			_ = wsjson.Write(ctx, c, map[string]any{"type": "error", "error": join.ErrorMsg{Code: "bad_request", Message: "invalid hello"}})
 			return
 		}
-		// Handle join
+		// Handle join (resume is optional; token still required by AuthService)
 		ack, em := join.HandleJoin(r.Context(), auth, eng, hello)
 		if em != nil {
 			_ = wsjson.Write(ctx, c, map[string]any{"type": "error", "error": em})
 			return
 		}
+		// Issue resume token for future reconnects
+		ack.ResumeToken = defaultResume.Issue(ack.PlayerID)
 		if err := wsjson.Write(ctx, c, map[string]any{"type": "join_ack", "data": ack}); err != nil {
 			return
 		}
@@ -102,6 +104,9 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 		telemTicker := time.NewTicker(telemetryDur)
 		defer telemTicker.Stop()
 		lastAck := 0
+		if hello.LastSeq > 0 {
+			lastAck = hello.LastSeq
+		}
 		playerID := ack.PlayerID
 		lastCell := ack.Cell // track last known owned cell to emit handover events
 		// movement speed meters/sec when intent vector length is 1

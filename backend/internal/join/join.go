@@ -14,7 +14,9 @@ type AuthService interface {
 
 // Hello represents the minimal client hello payload.
 type Hello struct {
-	Token string `json:"token"`
+	Token   string `json:"token"`
+	Resume  string `json:"resume,omitempty"`
+	LastSeq int    `json:"last_seq,omitempty"`
 }
 
 // JoinAck is sent on successful join.
@@ -29,6 +31,7 @@ type JoinAck struct {
 		CellSize            float64 `json:"cell_size"`
 		HandoverHysteresisM float64 `json:"handover_hysteresis"`
 	} `json:"config"`
+	ResumeToken string `json:"resume,omitempty"`
 }
 
 // ErrorMsg is a structured error for transport.
