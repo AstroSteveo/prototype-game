@@ -16,6 +16,7 @@ import (
 	"prototype-game/backend/internal/metrics"
 	"prototype-game/backend/internal/sim"
 	"prototype-game/backend/internal/spatial"
+	"prototype-game/backend/internal/state"
 	transportws "prototype-game/backend/internal/transport/ws"
 )
 
@@ -80,8 +81,11 @@ func main() {
 	// Prometheus metrics endpoint
 	mux.Handle("/metrics", metrics.Handler())
 	// WebSocket endpoint (stub unless built with -tags ws)
+	// Wire in-memory player state store for dev (US-501).
+	st := state.NewMemStore()
+	join.SetStore(st)
 	auth := join.NewHTTPAuth(*gatewayURL)
-	transportws.Register(mux, "/ws", auth, eng)
+	transportws.RegisterWithStore(mux, "/ws", auth, eng, st)
 	// Dev endpoints to poke the engine without a client transport yet.
 	mux.HandleFunc("/dev/spawn", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()

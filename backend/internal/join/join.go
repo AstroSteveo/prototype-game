@@ -2,9 +2,11 @@ package join
 
 import (
 	"context"
+	"time"
 
 	"prototype-game/backend/internal/sim"
 	"prototype-game/backend/internal/spatial"
+	"prototype-game/backend/internal/state"
 )
 
 // AuthService validates a client token and returns player identity.
@@ -14,21 +16,21 @@ type AuthService interface {
 
 // Hello represents the minimal client hello payload.
 type Hello struct {
-	Token string `json:"token"`
+    Token string `json:"token"`
 }
 
 // JoinAck is sent on successful join.
 type JoinAck struct {
-	PlayerID string          `json:"player_id"`
-	Pos      spatial.Vec2    `json:"pos"`
-	Cell     spatial.CellKey `json:"cell"`
-	Config   struct {
-		TickHz              int     `json:"tick_hz"`
-		SnapshotHz          int     `json:"snapshot_hz"`
-		AOIRadius           float64 `json:"aoi_radius"`
-		CellSize            float64 `json:"cell_size"`
-		HandoverHysteresisM float64 `json:"handover_hysteresis"`
-	} `json:"config"`
+    PlayerID string          `json:"player_id"`
+    Pos      spatial.Vec2    `json:"pos"`
+    Cell     spatial.CellKey `json:"cell"`
+    Config   struct {
+        TickHz              int     `json:"tick_hz"`
+        SnapshotHz          int     `json:"snapshot_hz"`
+        AOIRadius           float64 `json:"aoi_radius"`
+        CellSize            float64 `json:"cell_size"`
+        HandoverHysteresisM float64 `json:"handover_hysteresis"`
+    } `json:"config"`
 }
 
 // ErrorMsg is a structured error for transport.
@@ -47,8 +49,13 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	if !ok || pid == "" {
 		return JoinAck{}, &ErrorMsg{Code: "auth", Message: "invalid token"}
 	}
-	// TODO (M5): load last known position; for now default to origin.
+	// Load last known state if available (US-501)
 	pos := spatial.Vec2{}
+	if playerStore != nil {
+		if st, ok, _ := playerStore.Load(ctx, pid); ok {
+			pos = st.Pos
+		}
+	}
 	eng.AddOrUpdatePlayer(pid, name, pos, spatial.Vec2{})
 	// Read player fields via snapshot accessor to avoid data races with the tick loop.
 	snap, _ := eng.GetPlayer(pid)
@@ -64,5 +71,25 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	ack.Config.AOIRadius = cfg.AOIRadius
 	ack.Config.CellSize = cfg.CellSize
 	ack.Config.HandoverHysteresisM = cfg.HandoverHysteresisM
+	// Increment login count and persist immediately (best-effort) for visibility.
+	if playerStore != nil {
+		if st, ok, _ := playerStore.Load(ctx, pid); ok {
+			st.Logins++
+			st.Pos = snap.Pos
+			st.Updated = time.Now()
+			_ = playerStore.Save(ctx, pid, st)
+		} else {
+			_ = playerStore.Save(ctx, pid, state.PlayerState{Pos: snap.Pos, Logins: 1, Updated: time.Now()})
+		}
+	}
 	return ack, nil
 }
+
+// Pluggable store for player persistence; set by the service (e.g., sim main).
+var playerStore state.Store
+
+// SetStore configures the package-level persistence store.
+func SetStore(s state.Store) { playerStore = s }
+
+// now is an indirection for tests.
+// no-op

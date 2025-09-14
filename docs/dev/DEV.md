@@ -18,6 +18,13 @@ The repo includes a Makefile with common workflows.
   - `make login`
 - Probe WebSocket (join only):
   - `make wsprobe TOKEN=<value>`
+
+## Player Persistence (Dev)
+- The sim wires an in-memory store to remember each player's last position and a simple `logins` counter.
+- On join, the server loads the saved position (if any) and increments `logins`.
+- On WebSocket disconnect, the last known position is saved.
+
+
 - Probe movement + state (sends one input and prints a state):
   - `make wsprobe TOKEN=<value> MOVE_X=1 MOVE_Z=0`
   - Note: while moving, the server may emit `handover` events when the player crosses cell boundaries (see Protocol Notes below).
