@@ -40,6 +40,7 @@ func main() {
 		debug      = flag.Bool("debug", false, "enable debug logging (including snapshot logs)")
 		botDensity = flag.Int("bot-density", 3, "target actors (players+bots) per cell")
 		maxBots    = flag.Int("max-bots", 100, "maximum total bots across all cells")
+		storeFile  = flag.String("store-file", "", "file path for persistent player state store (default: in-memory)")
 	)
 	flag.Parse()
 
@@ -88,8 +89,22 @@ func main() {
 	// Prometheus metrics endpoint
 	mux.Handle("/metrics", metrics.Handler())
 	// WebSocket endpoint (stub unless built with -tags ws)
-	// Wire in-memory player state store for dev (US-501).
-	st := state.NewMemStore()
+	// Wire player state store for dev (US-501).
+	var st state.Store
+	var storeStopCh chan<- struct{}
+	if *storeFile != "" {
+		fileStore, err := state.NewFileStore(*storeFile)
+		if err != nil {
+			log.Fatalf("sim: failed to create file store: %v", err)
+		}
+		st = fileStore
+		// Start periodic flushing every 30 seconds
+		storeStopCh = fileStore.StartPeriodicFlush(30 * time.Second)
+		log.Printf("sim: using file store at %s", *storeFile)
+	} else {
+		st = state.NewMemStore()
+		log.Printf("sim: using in-memory store")
+	}
 	join.SetStore(st)
 	auth := join.NewHTTPAuth(*gatewayURL)
 	transportws.RegisterWithStore(mux, "/ws", auth, eng, st)
@@ -147,6 +162,21 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
+	// Stop periodic flushing if using file store
+	if storeStopCh != nil {
+		close(storeStopCh)
+	}
+
+	// Perform graceful shutdown of file store
+	if fileStore, ok := st.(*state.FileStore); ok {
+		if err := fileStore.GracefulShutdown(ctx); err != nil {
+			log.Printf("sim: file store shutdown error: %v", err)
+		} else {
+			log.Printf("sim: file store saved successfully")
+		}
+	}
+
 	_ = srv.Shutdown(ctx)
 	eng.Stop(ctx)
 	log.Printf("sim: stopped")
