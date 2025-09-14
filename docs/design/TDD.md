@@ -266,8 +266,14 @@ function maintainBotDensity(cell, target):
   if cur > target.max: despawnBot(cell)
 
 function updateBot(bot, dt):
-  if timeToRetarget(bot): bot.dir = randomUnitVector()
-  bot.vel = bot.dir * BOT_SPEED
+  repel = separationVec(bot, botsWithin(2m))
+  if repel != zero:
+    bot.dir = blend(bot.dir, repel)
+    bot.retargetAt = now + rand(3..7)s
+  if timeToRetarget(bot):
+    bot.dir = randomUnitVector()
+    bot.retargetAt = now + rand(3..7)s
+  bot.vel = clamp(bot.dir * BOT_SPEED, BOT_SPEED)
   if willExitCell(bot.pos, bot.vel, dt): bot.dir = turnAlongBorder(bot.dir)
 ```
 
