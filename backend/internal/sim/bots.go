@@ -35,7 +35,7 @@ func (e *Engine) updateBot(b *Entity, dt time.Duration, st *botState) {
 			dx := b.Pos.X - other.Pos.X
 			dz := b.Pos.Z - other.Pos.Z
 			distSq := dx*dx + dz*dz
-			if distSq < sepDistSq && distSq > 0 {
+			if distSq < sepDistSq {
 				dist := math.Sqrt(distSq)
 				repel.X += dx / dist
 				repel.Z += dz / dist
