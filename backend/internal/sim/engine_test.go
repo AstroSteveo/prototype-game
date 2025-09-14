@@ -126,9 +126,9 @@ func TestEngine_StopWithoutStartReturns(t *testing.T) {
 
 func TestSnapshotDebugLogging(t *testing.T) {
 	tests := []struct {
-		name        string
-		debugMode   bool
-		expectLogs  bool
+		name       string
+		debugMode  bool
+		expectLogs bool
 	}{
 		{
 			name:       "debug disabled - no logs",
@@ -154,15 +154,15 @@ func TestSnapshotDebugLogging(t *testing.T) {
 				DebugSnapshot:       tt.debugMode,
 			}
 			e := NewEngine(cfg)
-			
+
 			// Add a player to trigger snapshot logging
 			e.DevSpawn("test-player", "TestPlayer", spatial.Vec2{X: 5, Z: 5})
-			
+
 			// Call snapshot directly to test the behavior
 			// (Note: This test doesn't capture log output, but ensures the code path works)
 			// In a real scenario, one would need to capture log output to verify logging behavior
 			e.snapshot()
-			
+
 			// Verify the debug configuration is properly set
 			if e.cfg.DebugSnapshot != tt.debugMode {
 				t.Errorf("expected DebugSnapshot=%v, got %v", tt.debugMode, e.cfg.DebugSnapshot)
