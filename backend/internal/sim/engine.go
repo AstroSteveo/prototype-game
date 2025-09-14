@@ -20,7 +20,7 @@ type Engine struct {
 	cells     map[spatial.CellKey]*CellInstance
 	players   map[string]*Player // id -> player
 	bots      map[string]*botState
-	stopCh    chan struct{}
+	stopCh    chan struct{}<<<<<<< fix/engine-idempotent-stop-17
 	stoppedCh chan struct{}
 	// lifecycle guards
 	startOnce sync.Once
