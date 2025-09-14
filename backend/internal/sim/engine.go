@@ -144,11 +144,14 @@ func (e *Engine) snapshot() {
 	if total == 0 {
 		return
 	}
-	counts := 0
-	for _, c := range e.cells {
-		counts += len(c.Entities)
+	// Only log when debug mode is enabled to avoid log spam
+	if e.cfg.DebugSnapshot {
+		counts := 0
+		for _, c := range e.cells {
+			counts += len(c.Entities)
+		}
+		log.Printf("sim: snapshot players=%d entities=%d cells=%d", total, counts, len(e.cells))
 	}
-	log.Printf("sim: snapshot players=%d entities=%d cells=%d", total, counts, len(e.cells))
 }
 
 // maintainBotDensityLocked attempts to keep actors per cell within ±20% of target
