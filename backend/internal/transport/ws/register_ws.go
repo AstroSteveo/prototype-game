@@ -115,8 +115,8 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 		if hello.Resume != "" {
 			if resumePlayerID, ok := defaultResume.Lookup(hello.Resume); ok {
 				if resumePlayerID == playerID {
-					// Optionally set lastAck to a default value or leave unchanged
-					// lastAck = <some value if needed>
+					// Restore lastAck from hello.LastSeq when resume token is valid
+					lastAck = hello.LastSeq
 				}
 			}
 		}
