@@ -121,7 +121,7 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 				// On disconnect, persist last known position (US-501)
 				if store != nil {
 					if p, ok := eng.GetPlayer(playerID); ok {
-						_ = store.Save(r.Context(), playerID, state.PlayerState{Pos: p.Pos, Logins: 0, Updated: time.Now()})
+						_ = store.Save(r.Context(), playerID, state.PlayerState{Pos: p.Pos, Logins: p.Logins, Updated: time.Now()})
 					}
 				}
 				return
