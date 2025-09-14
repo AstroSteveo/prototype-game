@@ -1,17 +1,17 @@
 package sim
 
 import (
-    "context"
-    "fmt"
-    "log"
-    "math"
-    "math/rand"
-    "sync"
-    "sync/atomic"
-    "time"
+	"context"
+	"fmt"
+	"log"
+	"math"
+	"math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
 
-    "prototype-game/backend/internal/metrics"
-    "prototype-game/backend/internal/spatial"
+	"prototype-game/backend/internal/metrics"
+	"prototype-game/backend/internal/spatial"
 )
 
 type Engine struct {
@@ -20,6 +20,7 @@ type Engine struct {
 	cells     map[spatial.CellKey]*CellInstance
 	players   map[string]*Player // id -> player
 	bots      map[string]*botState
+	rng       *rand.Rand
 	stopCh    chan struct{}
 	stoppedCh chan struct{}
 	// lifecycle guards
@@ -46,34 +47,35 @@ func NewEngine(cfg Config) *Engine {
 		cells:     make(map[spatial.CellKey]*CellInstance),
 		players:   make(map[string]*Player),
 		bots:      make(map[string]*botState),
+		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 		stopCh:    make(chan struct{}),
 		stoppedCh: make(chan struct{}),
 	}
 }
 
 func (e *Engine) Start() {
-    e.startOnce.Do(func() {
-        e.started.Store(true)
-        go e.loop()
-    })
+	e.startOnce.Do(func() {
+		e.started.Store(true)
+		go e.loop()
+	})
 }
 
 func (e *Engine) Stop(ctx context.Context) {
-    e.stopOnce.Do(func() { close(e.stopCh) })
-    if !e.started.Load() {
-        return
-    }
-    select {
-    case <-e.stoppedCh:
-    case <-ctx.Done():
-    }
+	e.stopOnce.Do(func() { close(e.stopCh) })
+	if !e.started.Load() {
+		return
+	}
+	select {
+	case <-e.stoppedCh:
+	case <-ctx.Done():
+	}
 }
 
 func (e *Engine) loop() {
-    defer func() {
-        e.stopped.Store(true)
-        close(e.stoppedCh)
-    }()
+	defer func() {
+		e.stopped.Store(true)
+		close(e.stoppedCh)
+	}()
 	tickDur := time.Second / time.Duration(max(1, e.cfg.TickHz))
 	snapDur := time.Second / time.Duration(max(1, e.cfg.SnapshotHz))
 	ticker := time.NewTicker(tickDur)
@@ -142,11 +144,14 @@ func (e *Engine) snapshot() {
 	if total == 0 {
 		return
 	}
-	counts := 0
-	for _, c := range e.cells {
-		counts += len(c.Entities)
+	// Only log when debug mode is enabled to avoid log spam
+	if e.cfg.DebugSnapshot {
+		counts := 0
+		for _, c := range e.cells {
+			counts += len(c.Entities)
+		}
+		log.Printf("sim: snapshot players=%d entities=%d cells=%d", total, counts, len(e.cells))
 	}
-	log.Printf("sim: snapshot players=%d entities=%d cells=%d", total, counts, len(e.cells))
 }
 
 // maintainBotDensityLocked attempts to keep actors per cell within ±20% of target
@@ -222,7 +227,7 @@ func (e *Engine) spawnBotInCellLocked(k spatial.CellKey) bool {
 	// random position inside cell bounds
 	x0 := float64(k.Cx) * e.cfg.CellSize
 	z0 := float64(k.Cz) * e.cfg.CellSize
-	pos := spatial.Vec2{X: x0 + rand.Float64()*e.cfg.CellSize, Z: z0 + rand.Float64()*e.cfg.CellSize}
+	pos := spatial.Vec2{X: x0 + e.rng.Float64()*e.cfg.CellSize, Z: z0 + e.rng.Float64()*e.cfg.CellSize}
 	ent := &Entity{ID: id, Kind: KindBot, Pos: pos, Name: id}
 	c.Entities[id] = ent
 	// initial state
@@ -325,13 +330,6 @@ func (e *Engine) moveEntityLocked(p *Player, from, to spatial.CellKey) {
 	nc.Entities[p.ID] = &p.Entity
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // Step advances the simulation by dt. Exposed for tests and headless driving.
 func (e *Engine) Step(dt time.Duration) {
 	e.tick(dt)
@@ -374,6 +372,19 @@ func (e *Engine) DevList() []Player {
 		out = append(out, *p)
 	}
 	return out
+}
+
+// DevListAllEntities returns a snapshot list of all entities including bots (dev-only helper).
+func (e *Engine) DevListAllEntities() []Entity {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	var entities []Entity
+	for _, cell := range e.cells {
+		for _, ent := range cell.Entities {
+			entities = append(entities, *ent)
+		}
+	}
+	return entities
 }
 
 // GetConfig returns a copy of the engine's config.

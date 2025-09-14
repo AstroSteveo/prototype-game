@@ -122,12 +122,12 @@ From the repo root:
 - Spatial math: `backend/internal/spatial`
 - WebSocket transport: `backend/internal/transport/ws`
 - CLI probe: `backend/cmd/wsprobe`
-- Backlog/TDD: `docs/process/BACKLOG.md`, `docs/design/TDD.md`
+- Backlog/TDD: GitHub issues, `docs/design/TDD.md`
 
 ## Story Checklist (Copy into PR description)
 - [ ] Acceptance criteria implemented and exercised
 - [ ] Unit tests added/updated and passing (`make test`)
 - [ ] Integration tests added/updated if applicable (`make test-ws`)
-- [ ] Backlog updated (status, tests/evidence) in `docs/process/BACKLOG.md`
+- [ ] GitHub issue updated with status and tests/evidence
 - [ ] Developer docs updated if commands changed (`docs/dev/DEV.md`)
 - [ ] `go fmt`, `go vet`, and all tests pass

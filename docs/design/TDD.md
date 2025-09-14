@@ -266,8 +266,14 @@ function maintainBotDensity(cell, target):
   if cur > target.max: despawnBot(cell)
 
 function updateBot(bot, dt):
-  if timeToRetarget(bot): bot.dir = randomUnitVector()
-  bot.vel = bot.dir * BOT_SPEED
+  repel = separationVec(bot, botsWithin(2m))
+  if repel != zero:
+    bot.dir = blend(bot.dir, repel)
+    bot.retargetAt = now + rand(3..7)s
+  if timeToRetarget(bot):
+    bot.dir = randomUnitVector()
+    bot.retargetAt = now + rand(3..7)s
+  bot.vel = clamp(bot.dir * BOT_SPEED, BOT_SPEED)
   if willExitCell(bot.pos, bot.vel, dt): bot.dir = turnAlongBorder(bot.dir)
 ```
 
@@ -295,7 +301,7 @@ function updateBot(bot, dt):
   - Unit tests for core logic (e.g., engine, math, join/auth paths).
   - Integration tests where applicable (e.g., WS under `-tags ws`).
 - Tooling updated as needed (Makefile/scripts) and docs updated:
-  - Backlog status moved; tests/evidence noted in `docs/process/BACKLOG.md`.
+  - Backlog status moved; tests/evidence noted in the corresponding GitHub issue.
   - Developer commands or runbooks reflected in `docs/dev/DEV.md`.
 - Format and vet clean: `go fmt ./... && go vet ./...` with `go test ./...` green.
 - Security/safety considerations addressed (validate inputs, avoid panics, respect build tags).
