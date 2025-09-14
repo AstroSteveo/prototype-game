@@ -1,14 +1,14 @@
-name: Add items to Game Roadmap project
+name: Sync items to Game Roadmap project
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened, labeled, closed, reopened]
   pull_request:
-    types: [opened, labeled]
+    types: [opened, labeled, closed, reopened]
 
 jobs:
-  add-to-project:
-    if: github.actor != 'dependabot[bot]'
+  sync-to-project:
+    if: github.actor != 'dependabot[bot]' && vars.PROJECT_URL != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -24,5 +24,4 @@ jobs:
           project-url: ${{ vars.PROJECT_URL }}
           github-token: ${{ secrets.PROJECTS_TOKEN }}
           labeled: story, bug, task
-          # If unlabeled, items won’t be added; adjust as desired
-
+          # If unlabeled, items won't be added; adjust as desired
