@@ -28,7 +28,9 @@ func (m *ResumeManager) Issue(playerID string) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var b [16]byte
-	_, _ = rand.Read(b[:])
+	if _, err := rand.Read(b[:]); err != nil {
+		return ""
+	}
 	tok := hex.EncodeToString(b[:])
 	m.data[tok] = resumeEntry{playerID: playerID, exp: time.Now().Add(m.ttl)}
 	return tok
