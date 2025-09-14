@@ -16,10 +16,16 @@ import (
 	"prototype-game/backend/internal/metrics"
 	"prototype-game/backend/internal/sim"
 	"prototype-game/backend/internal/spatial"
+	"prototype-game/backend/internal/state"
 )
 
 // Register installs the websocket handler when built with the `ws` tag.
 func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine) {
+	RegisterWithStore(mux, path, auth, eng, nil)
+}
+
+// RegisterWithStore is like Register but allows wiring a persistence store (US-501).
+func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, store state.Store) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		c, err := nws.Accept(w, r, &nws.AcceptOptions{InsecureSkipVerify: true})
 		if err != nil {
@@ -101,7 +107,7 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 		defer ticker.Stop()
 		telemTicker := time.NewTicker(telemetryDur)
 		defer telemTicker.Stop()
-		lastAck := 0
+        lastAck := 0
 		playerID := ack.PlayerID
 		lastCell := ack.Cell // track last known owned cell to emit handover events
 		// movement speed meters/sec when intent vector length is 1
@@ -111,6 +117,12 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 		for {
 			select {
 			case <-done:
+				// On disconnect, persist last known position (US-501)
+				if store != nil {
+					if p, ok := eng.GetPlayer(playerID); ok {
+						_ = store.Save(r.Context(), playerID, state.PlayerState{Pos: p.Pos, Logins: p.Logins, Updated: time.Now()})
+					}
+				}
 				return
 			case in := <-inputs:
 				// clamp intent and update velocity
