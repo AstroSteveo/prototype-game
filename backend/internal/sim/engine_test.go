@@ -1,6 +1,7 @@
 package sim
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -78,5 +79,47 @@ func TestHandoverAfterHysteresis(t *testing.T) {
 	pSnap, _ = e.GetPlayer("p2")
 	if pSnap.OwnedCell.Cx != 1 || pSnap.OwnedCell.Cz != 0 {
 		t.Fatalf("expected handover to (1,0), got (%d,%d) at x=%.2f", pSnap.OwnedCell.Cx, pSnap.OwnedCell.Cz, pSnap.Pos.X)
+	}
+}
+
+func TestEngine_StopTwiceIsIdempotent(t *testing.T) {
+	e := newTestEngine()
+	e.Start()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	// First stop should cleanly terminate the loop
+	e.Stop(ctx)
+	// Second stop should return immediately without panic
+	done := make(chan struct{})
+	go func() { e.Stop(ctx); close(done) }()
+	select {
+	case <-done:
+		// ok
+	case <-ctx.Done():
+		t.Fatalf("second Stop did not return before context deadline")
+	}
+}
+
+func TestEngine_StartTwiceIsIdempotent(t *testing.T) {
+	e := newTestEngine()
+	// Calling Start multiple times must not panic or create issues
+	e.Start()
+	e.Start()
+	// Give it a moment to spin
+	time.Sleep(50 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	e.Stop(ctx)
+}
+
+func TestEngine_StopWithoutStartReturns(t *testing.T) {
+	e := newTestEngine()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	// Should be a no-op and return promptly
+	start := time.Now()
+	e.Stop(ctx)
+	if time.Since(start) > 300*time.Millisecond {
+		t.Fatalf("Stop without Start took too long")
 	}
 }

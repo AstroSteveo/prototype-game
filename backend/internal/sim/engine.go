@@ -1,17 +1,17 @@
 package sim
 
 import (
-    "context"
-    "fmt"
-    "log"
-    "math"
-    "math/rand"
-    "sync"
-    "sync/atomic"
-    "time"
+	"context"
+	"fmt"
+	"log"
+	"math"
+	"math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
 
-    "prototype-game/backend/internal/metrics"
-    "prototype-game/backend/internal/spatial"
+	"prototype-game/backend/internal/metrics"
+	"prototype-game/backend/internal/spatial"
 )
 
 type Engine struct {
@@ -20,7 +20,7 @@ type Engine struct {
 	cells     map[spatial.CellKey]*CellInstance
 	players   map[string]*Player // id -> player
 	bots      map[string]*botState
-	stopCh    chan struct{}
+	stopCh    chan struct{}<<<<<<< fix/engine-idempotent-stop-17
 	stoppedCh chan struct{}
 	// lifecycle guards
 	startOnce sync.Once
@@ -52,28 +52,28 @@ func NewEngine(cfg Config) *Engine {
 }
 
 func (e *Engine) Start() {
-    e.startOnce.Do(func() {
-        e.started.Store(true)
-        go e.loop()
-    })
+	e.startOnce.Do(func() {
+		e.started.Store(true)
+		go e.loop()
+	})
 }
 
 func (e *Engine) Stop(ctx context.Context) {
-    e.stopOnce.Do(func() { close(e.stopCh) })
-    if !e.started.Load() {
-        return
-    }
-    select {
-    case <-e.stoppedCh:
-    case <-ctx.Done():
-    }
+	e.stopOnce.Do(func() { close(e.stopCh) })
+	if !e.started.Load() {
+		return
+	}
+	select {
+	case <-e.stoppedCh:
+	case <-ctx.Done():
+	}
 }
 
 func (e *Engine) loop() {
-    defer func() {
-        e.stopped.Store(true)
-        close(e.stoppedCh)
-    }()
+	defer func() {
+		e.stopped.Store(true)
+		close(e.stoppedCh)
+	}()
 	tickDur := time.Second / time.Duration(max(1, e.cfg.TickHz))
 	snapDur := time.Second / time.Duration(max(1, e.cfg.SnapshotHz))
 	ticker := time.NewTicker(tickDur)
@@ -323,13 +323,6 @@ func (e *Engine) moveEntityLocked(p *Player, from, to spatial.CellKey) {
 	}
 	nc := e.getOrCreateCellLocked(to)
 	nc.Entities[p.ID] = &p.Entity
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // Step advances the simulation by dt. Exposed for tests and headless driving.
