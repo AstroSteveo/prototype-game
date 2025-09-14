@@ -8,7 +8,12 @@ import (
 )
 
 const (
-	botSpeed  = 1.5 // m/s
+	botSpeed = 1.5 // m/s
+
+	retargetMin   = 3 // seconds
+	retargetRange = 5 // seconds -> 3-7s
+	retargetMax   = retargetMin + retargetRange - 1
+
 	sepDist   = 2.0 // meters
 	sepDistSq = sepDist * sepDist
 )
@@ -57,13 +62,13 @@ func (e *Engine) updateBot(b *Entity, dt time.Duration, st *botState) {
 			} else {
 				st.dir = repelDir
 			}
-			st.retargetAt = now.Add(time.Duration(3+e.rng.Intn(5)) * time.Second)
+			st.retargetAt = now.Add(time.Duration(retargetMin+e.rng.Intn(retargetRange)) * time.Second)
 		}
 	}
 	if now.After(st.retargetAt) {
 		angle := e.rng.Float64() * 2 * math.Pi
 		st.dir = spatial.Vec2{X: math.Cos(angle), Z: math.Sin(angle)}
-		st.retargetAt = now.Add(time.Duration(3+e.rng.Intn(5)) * time.Second)
+		st.retargetAt = now.Add(time.Duration(retargetMin+e.rng.Intn(retargetRange)) * time.Second)
 	}
 	b.Vel = spatial.Vec2{X: st.dir.X * botSpeed, Z: st.dir.Z * botSpeed}
 }

@@ -36,7 +36,7 @@ func TestBotSeparation(t *testing.T) {
 	if dist <= 2 {
 		t.Fatalf("bots did not separate, dist=%.2f", dist)
 	}
-	if d := time.Until(e.bots[b1.ID].retargetAt); d < 3*time.Second || d > 7*time.Second {
+	if d := time.Until(e.bots[b1.ID].retargetAt); d < time.Duration(retargetMin)*time.Second || d > time.Duration(retargetMax)*time.Second {
 		t.Fatalf("retarget window out of range: %v", d)
 	}
 }
