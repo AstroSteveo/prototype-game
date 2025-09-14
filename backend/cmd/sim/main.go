@@ -29,16 +29,16 @@ type httpConfig struct {
 
 func main() {
 	var (
-		port         = flag.String("port", "8081", "HTTP listen port for sim service")
-		cellSize     = flag.Float64("cell", 256, "cell size in meters")
-		aoiRadius    = flag.Float64("aoi", 128, "AOI radius in meters")
-		tickHz       = flag.Int("tick", 20, "simulation tick rate (Hz)")
-		snapshotHz   = flag.Int("snap", 10, "snapshot rate (Hz)")
-		hysteresis   = flag.Float64("hyst", 2, "handover hysteresis in meters")
-		gatewayURL   = flag.String("gateway", "http://localhost:8080", "gateway base URL for token validation")
-		debug        = flag.Bool("debug", false, "enable debug logging (including snapshot logs)")
-		botDensity   = flag.Int("bot-density", 3, "target actors (players+bots) per cell")
-		maxBots      = flag.Int("max-bots", 100, "maximum total bots across all cells")
+		port       = flag.String("port", "8081", "HTTP listen port for sim service")
+		cellSize   = flag.Float64("cell", 256, "cell size in meters")
+		aoiRadius  = flag.Float64("aoi", 128, "AOI radius in meters")
+		tickHz     = flag.Int("tick", 20, "simulation tick rate (Hz)")
+		snapshotHz = flag.Int("snap", 10, "snapshot rate (Hz)")
+		hysteresis = flag.Float64("hyst", 2, "handover hysteresis in meters")
+		gatewayURL = flag.String("gateway", "http://localhost:8080", "gateway base URL for token validation")
+		debug      = flag.Bool("debug", false, "enable debug logging (including snapshot logs)")
+		botDensity = flag.Int("bot-density", 3, "target actors (players+bots) per cell")
+		maxBots    = flag.Int("max-bots", 100, "maximum total bots across all cells")
 	)
 	flag.Parse()
 
@@ -61,7 +61,7 @@ func main() {
 		DebugSnapshot:        *debug,
 	})
 	eng.Start()
-	log.Printf("sim: started. tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm bot-density=%d max-bots=%d", 
+	log.Printf("sim: started. tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm bot-density=%d max-bots=%d",
 		*tickHz, *snapshotHz, *cellSize, *aoiRadius, *botDensity, *maxBots)
 
 	mux := http.NewServeMux()
