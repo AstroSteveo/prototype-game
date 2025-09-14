@@ -29,6 +29,9 @@ func (m *ResumeManager) Issue(playerID string) string {
 	defer m.mu.Unlock()
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
+		// If random number generation fails, do not issue a token.
+		return ""
+	}
 		return ""
 	}
 	tok := hex.EncodeToString(b[:])
