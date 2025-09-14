@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestValidateConfig(t *testing.T) {
 	tests := []struct {
@@ -103,7 +106,7 @@ func TestValidateConfig(t *testing.T) {
 					return
 				}
 				if tt.errorSubstring != "" && err.Error() != "" {
-					if !contains(err.Error(), tt.errorSubstring) {
+					if !strings.Contains(err.Error(), tt.errorSubstring) {
 						t.Errorf("expected error to contain %q, got %q", tt.errorSubstring, err.Error())
 					}
 				}
@@ -114,18 +117,4 @@ func TestValidateConfig(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) > 0 && indexOf(s, substr) >= 0)
-}
-
-func indexOf(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
 }
