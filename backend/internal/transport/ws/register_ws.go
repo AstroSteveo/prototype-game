@@ -104,10 +104,15 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 		telemTicker := time.NewTicker(telemetryDur)
 		defer telemTicker.Stop()
 		lastAck := 0
-		if hello.LastSeq > 0 {
-			lastAck = hello.LastSeq
-		}
 		playerID := ack.PlayerID
+		// Validate resume token before trusting LastSeq
+		if hello.Resume != "" {
+			if resumeInfo, err := defaultResume.Validate(hello.Resume); err == nil {
+				if resumeInfo.PlayerID == playerID && resumeInfo.LastSeq > 0 {
+					lastAck = resumeInfo.LastSeq
+				}
+			}
+		}
 		lastCell := ack.Cell // track last known owned cell to emit handover events
 		// movement speed meters/sec when intent vector length is 1
 		const moveSpeed = 3.0
