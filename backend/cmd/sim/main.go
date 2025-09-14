@@ -29,14 +29,16 @@ type httpConfig struct {
 
 func main() {
 	var (
-		port       = flag.String("port", "8081", "HTTP listen port for sim service")
-		cellSize   = flag.Float64("cell", 256, "cell size in meters")
-		aoiRadius  = flag.Float64("aoi", 128, "AOI radius in meters")
-		tickHz     = flag.Int("tick", 20, "simulation tick rate (Hz)")
-		snapshotHz = flag.Int("snap", 10, "snapshot rate (Hz)")
-		hysteresis = flag.Float64("hyst", 2, "handover hysteresis in meters")
-		gatewayURL = flag.String("gateway", "http://localhost:8080", "gateway base URL for token validation")
-		debug      = flag.Bool("debug", false, "enable debug logging (including snapshot logs)")
+		port         = flag.String("port", "8081", "HTTP listen port for sim service")
+		cellSize     = flag.Float64("cell", 256, "cell size in meters")
+		aoiRadius    = flag.Float64("aoi", 128, "AOI radius in meters")
+		tickHz       = flag.Int("tick", 20, "simulation tick rate (Hz)")
+		snapshotHz   = flag.Int("snap", 10, "snapshot rate (Hz)")
+		hysteresis   = flag.Float64("hyst", 2, "handover hysteresis in meters")
+		gatewayURL   = flag.String("gateway", "http://localhost:8080", "gateway base URL for token validation")
+		debug        = flag.Bool("debug", false, "enable debug logging (including snapshot logs)")
+		botDensity   = flag.Int("bot-density", 3, "target actors (players+bots) per cell")
+		maxBots      = flag.Int("max-bots", 100, "maximum total bots across all cells")
 	)
 	flag.Parse()
 
@@ -49,15 +51,18 @@ func main() {
 	metrics.Init()
 
 	eng := sim.NewEngine(sim.Config{
-		CellSize:            *cellSize,
-		AOIRadius:           *aoiRadius,
-		TickHz:              *tickHz,
-		SnapshotHz:          *snapshotHz,
-		HandoverHysteresisM: *hysteresis,
-		DebugSnapshot:       *debug,
+		CellSize:             *cellSize,
+		AOIRadius:            *aoiRadius,
+		TickHz:               *tickHz,
+		SnapshotHz:           *snapshotHz,
+		HandoverHysteresisM:  *hysteresis,
+		TargetDensityPerCell: *botDensity,
+		MaxBots:              *maxBots,
+		DebugSnapshot:        *debug,
 	})
 	eng.Start()
-	log.Printf("sim: started. tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm", *tickHz, *snapshotHz, *cellSize, *aoiRadius)
+	log.Printf("sim: started. tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm bot-density=%d max-bots=%d", 
+		*tickHz, *snapshotHz, *cellSize, *aoiRadius, *botDensity, *maxBots)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -116,6 +121,10 @@ func main() {
 	mux.HandleFunc("/dev/players", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(eng.DevList())
+	})
+	mux.HandleFunc("/dev/entities", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(eng.DevListAllEntities())
 	})
 
 	srv := &http.Server{Addr: ":" + *port, Handler: mux}

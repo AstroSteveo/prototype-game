@@ -374,6 +374,19 @@ func (e *Engine) DevList() []Player {
 	return out
 }
 
+// DevListAllEntities returns a snapshot list of all entities including bots (dev-only helper).
+func (e *Engine) DevListAllEntities() []Entity {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	var entities []Entity
+	for _, cell := range e.cells {
+		for _, ent := range cell.Entities {
+			entities = append(entities, *ent)
+		}
+	}
+	return entities
+}
+
 // GetConfig returns a copy of the engine's config.
 func (e *Engine) GetConfig() Config { return e.cfg }
 
