@@ -295,7 +295,7 @@ function updateBot(bot, dt):
   - Unit tests for core logic (e.g., engine, math, join/auth paths).
   - Integration tests where applicable (e.g., WS under `-tags ws`).
 - Tooling updated as needed (Makefile/scripts) and docs updated:
-  - Backlog status moved; tests/evidence noted in `docs/process/BACKLOG.md`.
+  - Backlog status moved; tests/evidence noted in the corresponding GitHub issue.
   - Developer commands or runbooks reflected in `docs/dev/DEV.md`.
 - Format and vet clean: `go fmt ./... && go vet ./...` with `go test ./...` green.
 - Security/safety considerations addressed (validate inputs, avoid panics, respect build tags).
