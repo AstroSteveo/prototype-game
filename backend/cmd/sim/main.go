@@ -36,6 +36,7 @@ func main() {
 		snapshotHz = flag.Int("snap", 10, "snapshot rate (Hz)")
 		hysteresis = flag.Float64("hyst", 2, "handover hysteresis in meters")
 		gatewayURL = flag.String("gateway", "http://localhost:8080", "gateway base URL for token validation")
+		debug      = flag.Bool("debug", false, "enable debug logging (including snapshot logs)")
 	)
 	flag.Parse()
 
@@ -53,6 +54,7 @@ func main() {
 		TickHz:              *tickHz,
 		SnapshotHz:          *snapshotHz,
 		HandoverHysteresisM: *hysteresis,
+		DebugSnapshot:       *debug,
 	})
 	eng.Start()
 	log.Printf("sim: started. tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm", *tickHz, *snapshotHz, *cellSize, *aoiRadius)
