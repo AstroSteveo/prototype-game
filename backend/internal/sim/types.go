@@ -40,4 +40,6 @@ type Config struct {
 	// Bots & density control
 	TargetDensityPerCell int // desired actors (players+bots) per cell
 	MaxBots              int // global cap across all cells
+	// Debug settings
+	DebugSnapshot bool // enable snapshot logging
 }
