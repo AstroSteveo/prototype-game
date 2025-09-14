@@ -109,7 +109,7 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 		defer ticker.Stop()
 		telemTicker := time.NewTicker(telemetryDur)
 		defer telemTicker.Stop()
-        lastAck := 0
+		lastAck := 0
 		playerID := ack.PlayerID
 		// Validate resume token before trusting LastSeq
 		if hello.Resume != "" {
