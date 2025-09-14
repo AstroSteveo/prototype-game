@@ -52,7 +52,6 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 			_ = wsjson.Write(ctx, c, map[string]any{"type": "error", "error": em})
 			return
 		}
-        // No resume token in US-501 branch
 		if err := wsjson.Write(ctx, c, map[string]any{"type": "join_ack", "data": ack}); err != nil {
 			return
 		}
