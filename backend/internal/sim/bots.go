@@ -43,7 +43,20 @@ func (e *Engine) updateBot(b *Entity, dt time.Duration, st *botState) {
 		}
 		if repel.X != 0 || repel.Z != 0 {
 			mag := math.Hypot(repel.X, repel.Z)
-			st.dir = spatial.Vec2{X: repel.X / mag, Z: repel.Z / mag}
+			// Blend repulsion with current direction
+			repelDir := spatial.Vec2{X: repel.X / mag, Z: repel.Z / mag}
+			blendWander := 0.7
+			blendRepel := 0.3
+			blended := spatial.Vec2{
+				X: st.dir.X*blendWander + repelDir.X*blendRepel,
+				Z: st.dir.Z*blendWander + repelDir.Z*blendRepel,
+			}
+			blendedMag := math.Hypot(blended.X, blended.Z)
+			if blendedMag > 0 {
+				st.dir = spatial.Vec2{X: blended.X / blendedMag, Z: blended.Z / blendedMag}
+			} else {
+				st.dir = repelDir
+			}
 			st.retargetAt = now.Add(time.Duration(3+e.rng.Intn(5)) * time.Second)
 		}
 	}
