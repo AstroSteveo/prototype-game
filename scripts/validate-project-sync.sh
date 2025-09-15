@@ -83,6 +83,19 @@ if ! grep -q "scopes:.*project.*repo" "$DOCS_FILE"; then
 fi
 echo "✅ Documentation contains correct token scopes"
 
+# Test URL parsing logic
+echo "🧪 Testing URL parsing logic..."
+if command -v node >/dev/null 2>&1 && [[ -f "scripts/test-project-url-parsing.js" ]]; then
+    if node scripts/test-project-url-parsing.js >/dev/null 2>&1; then
+        echo "✅ URL parsing logic tests pass"
+    else
+        echo "❌ URL parsing logic tests failed"
+        exit 1
+    fi
+else
+    echo "⚠️  Skipping URL parsing tests (Node.js not available or test script missing)"
+fi
+
 echo ""
 echo "🎉 All validation checks passed!"
 echo ""
