@@ -52,23 +52,21 @@ echo "✅ Workflow configured for story, bug, task labels"
 echo "🏷️  Checking issue templates..."
 
 TEMPLATES_DIR=".github/ISSUE_TEMPLATE"
-if [[ ! -f "$TEMPLATES_DIR/story.yml" ]] || ! grep -q 'labels: \["story"\]' "$TEMPLATES_DIR/story.yml"; then
-    echo "❌ Story template missing or incorrect label"
-    exit 1
-fi
-echo "✅ Story template has correct label"
 
-if [[ ! -f "$TEMPLATES_DIR/task.yml" ]] || ! grep -q 'labels: \["task"\]' "$TEMPLATES_DIR/task.yml"; then
-    echo "❌ Task template missing or incorrect label"
-    exit 1
-fi
-echo "✅ Task template has correct label"
+validate_template_label() {
+    local template_name="$1"
+    local expected_label="$2"
+    local template_file="$TEMPLATES_DIR/${template_name}.yml"
+    if [[ ! -f "$template_file" ]] || ! grep -q "labels: \[\"$expected_label\"\]" "$template_file"; then
+        echo "❌ ${template_name^} template missing or incorrect label"
+        exit 1
+    fi
+    echo "✅ ${template_name^} template has correct label"
+}
 
-if [[ ! -f "$TEMPLATES_DIR/bug.yml" ]] || ! grep -q 'labels: \["bug"\]' "$TEMPLATES_DIR/bug.yml"; then
-    echo "❌ Bug template missing or incorrect label"
-    exit 1
-fi
-echo "✅ Bug template has correct label"
+validate_template_label "story" "story"
+validate_template_label "task" "task"
+validate_template_label "bug" "bug"
 
 # Check documentation content
 echo "📖 Checking documentation content..."
