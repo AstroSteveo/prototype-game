@@ -30,11 +30,6 @@ func (e *Engine) maintainBotDensity() {}
 // updateBot applies wander behavior with simple separation to avoid clustering.
 func (e *Engine) updateBot(b *Entity, dt time.Duration, st *botState) {
 	now := time.Now()
-	
-	// Initialize retarget time if unset (for new bots)
-	if st.retargetAt.IsZero() {
-		st.retargetAt = now.Add(time.Duration(retargetMin+e.rng.Intn(retargetRange)) * time.Second)
-	}
 
 	// Separation: steer away from nearby bots (<2m).
 	var appliedSeparation bool
@@ -63,26 +58,31 @@ func (e *Engine) updateBot(b *Entity, dt time.Duration, st *botState) {
 			mag := math.Hypot(repel.X, repel.Z)
 			repelDir := spatial.Vec2{X: repel.X / mag, Z: repel.Z / mag}
 
-			// Handle uninitialized direction (zero vector)
-			if st.dir.X == 0 && st.dir.Z == 0 {
-				// Pure separation when no existing direction
+			// For very close bots (< 1.2m), use pure separation
+			minDist := math.Sqrt(minDistSq)
+			if minDist < 1.2 {
 				st.dir = repelDir
 			} else {
-				// Adaptive blending: stronger separation for closer bots
-				minDist := math.Sqrt(minDistSq)
-				separationStrength := math.Min(1.0, sepDist/minDist) // 0.0 at sepDist, 1.0 at 0 distance
-				blendRepel := 0.7 + 0.25*separationStrength          // 0.7 to 0.95 based on proximity
-				blendWander := 1.0 - blendRepel
-
-				blended := spatial.Vec2{
-					X: st.dir.X*blendWander + repelDir.X*blendRepel,
-					Z: st.dir.Z*blendWander + repelDir.Z*blendRepel,
-				}
-				blendedMag := math.Hypot(blended.X, blended.Z)
-				if blendedMag > 0 {
-					st.dir = spatial.Vec2{X: blended.X / blendedMag, Z: blended.Z / blendedMag}
-				} else {
+				// Handle uninitialized direction (zero vector)
+				if st.dir.X == 0 && st.dir.Z == 0 {
+					// Pure separation when no existing direction
 					st.dir = repelDir
+				} else {
+					// Adaptive blending: stronger separation for closer bots
+					separationStrength := math.Min(1.0, sepDist/minDist) // 0.0 at sepDist, 1.0 at 0 distance
+					blendRepel := 0.8 + 0.15*separationStrength          // 0.8 to 0.95 based on proximity
+					blendWander := 1.0 - blendRepel
+
+					blended := spatial.Vec2{
+						X: st.dir.X*blendWander + repelDir.X*blendRepel,
+						Z: st.dir.Z*blendWander + repelDir.Z*blendRepel,
+					}
+					blendedMag := math.Hypot(blended.X, blended.Z)
+					if blendedMag > 0 {
+						st.dir = spatial.Vec2{X: blended.X / blendedMag, Z: blended.Z / blendedMag}
+					} else {
+						st.dir = repelDir
+					}
 				}
 			}
 			// Delay retargeting while actively separating
@@ -92,17 +92,18 @@ func (e *Engine) updateBot(b *Entity, dt time.Duration, st *botState) {
 	}
 
 	// Random retargeting when not actively separating
-	if !appliedSeparation && now.After(st.retargetAt) {
+	// Only retarget if we have a valid retarget time set and it has passed
+	if !appliedSeparation && !st.retargetAt.IsZero() && now.After(st.retargetAt) {
 		angle := e.rng.Float64() * 2 * math.Pi
 		st.dir = spatial.Vec2{X: math.Cos(angle), Z: math.Sin(angle)}
 		st.retargetAt = now.Add(time.Duration(retargetMin+e.rng.Intn(retargetRange)) * time.Second)
 	}
-	
-	// Ensure bot always has a valid direction and velocity
-	if st.dir.X == 0 && st.dir.Z == 0 {
-		// Fallback: assign random direction if still zero
+
+	// Ensure bot has direction - for initial updates in tests
+	if st.dir.X == 0 && st.dir.Z == 0 && st.retargetAt.IsZero() {
 		angle := e.rng.Float64() * 2 * math.Pi
 		st.dir = spatial.Vec2{X: math.Cos(angle), Z: math.Sin(angle)}
+		st.retargetAt = now.Add(time.Duration(retargetMin+e.rng.Intn(retargetRange)) * time.Second)
 	}
 
 	b.Vel = spatial.Vec2{X: st.dir.X * botSpeed, Z: st.dir.Z * botSpeed}
