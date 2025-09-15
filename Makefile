@@ -12,7 +12,7 @@ SIM_PORT ?= 8081
 GATEWAY_URL := http://localhost:$(GATEWAY_PORT)
 SIM_URL := http://localhost:$(SIM_PORT)
 
-.PHONY: help fmt vet test test-ws build run run-gateway run-sim wait-up stop login wsprobe e2e-join e2e-move pr clean
+.PHONY: help fmt vet test test-ws test-race test-ws-race build run run-gateway run-sim wait-up stop login wsprobe e2e-join e2e-move pr clean
 
 help:
 	@echo "Common targets:"
@@ -22,6 +22,8 @@ help:
 	@echo "  make wsprobe TOKEN=... [MOVE_X=1 MOVE_Z=0]  # probe WS"
 	@echo "  make test        # run unit tests"
 	@echo "  make test-ws     # run tests with -tags ws (includes WS integration)"
+	@echo "  make test-race   # run unit tests with race detection"
+	@echo "  make test-ws-race # run WS tests with race detection"
 	@echo "  make build       # build gateway, sim (WS), and wsprobe binaries"
 	@echo "  make pr TITLE=... [BODY=... BASE=main HEAD=current DRAFT=1]  # open a PR (uses gh or curl)"
 
@@ -36,6 +38,12 @@ test:
 
 test-ws:
 	cd $(BACKEND) && go test -tags ws ./...
+
+test-race:
+	cd $(BACKEND) && go test -race ./...
+
+test-ws-race:
+	cd $(BACKEND) && go test -race -tags ws ./...
 
 build:
 	mkdir -p $(BIN)

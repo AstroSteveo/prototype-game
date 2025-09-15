@@ -19,6 +19,20 @@ The repo includes a Makefile with common workflows.
 - Probe WebSocket (join only):
   - `make wsprobe TOKEN=<value>`
 
+## CI and Testing
+The project uses GitHub Actions for continuous integration. The CI workflow:
+
+- **Triggers**: Runs on pushes and PRs to `main`, but skips docs-only changes
+- **Test Matrix**: Tests both unit tests and WebSocket integration tests, with and without race detection
+- **Make Targets**: CI uses Makefile targets for consistency:
+  - `make fmt vet` - Format and vet code
+  - `make test` - Run unit tests  
+  - `make test-ws` - Run WebSocket integration tests
+  - `make test-race` - Run unit tests with race detection
+  - `make test-ws-race` - Run WebSocket tests with race detection
+
+**Before committing**, always run: `make fmt vet test test-ws`
+
 ## Reconnect / Resume (WS)
 - On successful join, the server includes a `resume` token in `join_ack`.
 - Clients can reconnect by sending `{token, resume, last_seq}` so the server continues input ACKs from `last_seq`.
@@ -39,6 +53,8 @@ The repo includes a Makefile with common workflows.
 - Tests:
   - Unit: `make test`
   - WS integration (requires ws build tag): `make test-ws`
+  - Unit with race detection: `make test-race`
+  - WS integration with race detection: `make test-ws-race`
 
 ### Ports and Overrides
 - Defaults: gateway `:8080`, sim `:8081`
@@ -80,8 +96,9 @@ From the repo root:
   - `./backend/bin/sim -port 8081`
 
 ## Tests
-- Unit tests: `cd backend && go test ./...`
-- WS integration tests (require ws tag): `cd backend && go test -tags ws ./...`
+- Unit tests: `make test` or `cd backend && go test ./...`
+- WS integration tests (require ws tag): `make test-ws` or `cd backend && go test -tags ws ./...`
+- Race detection: `make test-race` or `make test-ws-race`
   - Includes tests for movement, telemetry, cadence, and handover events.
 
 ## Useful Endpoints

@@ -3,8 +3,16 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'wiki-content/**'
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'wiki-content/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -59,34 +67,24 @@ jobs:
           go version
           go env GOCACHE GOMODCACHE
 
-      - name: Format (gofmt)
+      - name: Format and Vet
         if: matrix.target == 'unit'
-        working-directory: backend
         run: |
-          go fmt ./...
+          make fmt vet
           git diff --exit-code
-
-      - name: Vet
-        if: matrix.target == 'unit'
-        working-directory: backend
-        run: go vet ./...
 
       - name: Tests (unit)
         if: matrix.target == 'unit' && matrix.race == false
-        working-directory: backend
-        run: go test ./...
+        run: make test
 
       - name: Tests (unit, race)
         if: matrix.target == 'unit' && matrix.race == true
-        working-directory: backend
-        run: go test -race ./...
+        run: make test-race
 
       - name: Tests (ws)
         if: matrix.target == 'ws' && matrix.race == false
-        working-directory: backend
-        run: go test -tags ws ./...
+        run: make test-ws
 
       - name: Tests (ws, race)
         if: matrix.target == 'ws' && matrix.race == true
-        working-directory: backend
-        run: go test -race -tags ws ./...
+        run: make test-ws-race
