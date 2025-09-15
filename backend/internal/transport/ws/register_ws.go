@@ -31,6 +31,21 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 
 // RegisterWithStoreAndDevMode is like RegisterWithStore but allows configuring dev mode for relaxed security.
 func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, store state.Store, devMode bool) {
+	RegisterWithOptions(mux, path, auth, eng, store, WSOptions{})
+}
+
+// WSOptions contains configuration options for WebSocket behavior
+type WSOptions struct {
+	IdleTimeout time.Duration // if zero, defaults to 30 seconds
+}
+
+// RegisterWithOptions allows configuring WebSocket behavior for testing
+func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, store state.Store, opts WSOptions) {
+	idleTimeout := opts.IdleTimeout
+	if idleTimeout == 0 {
+		idleTimeout = 30 * time.Second
+	}
+
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		// Configure WebSocket accept options based on dev mode
 		var acceptOptions *nws.AcceptOptions
@@ -64,6 +79,9 @@ func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.Auth
 		}
 		defer c.Close(nws.StatusNormalClosure, "bye")
 
+		// Set read limit to prevent oversized messages (32KB)
+		c.SetReadLimit(32 << 10)
+
 		// metrics: track connected clients
 		metrics.IncWSConnected()
 		defer metrics.DecWSConnected()
@@ -77,7 +95,7 @@ func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.Auth
 			return
 		}
 		// Handle join (resume is optional; token still required by AuthService)
-		ack, em := join.HandleJoin(r.Context(), auth, eng, hello)
+		ack, em := join.HandleJoin(ctx, auth, eng, hello)
 		if em != nil {
 			_ = wsjson.Write(ctx, c, map[string]any{"type": "error", "error": em})
 			return
@@ -105,13 +123,23 @@ func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.Auth
 		}
 		inputs := make(chan inputMsg, 16)
 		done := make(chan struct{})
+		activityCh := make(chan time.Time, 1)
+
 		go func() {
 			defer close(done)
-			// allow indefinite reading; use ping/pong timeouts via context deadline per message
+			// per-message read deadline to prevent hanging on slow/malicious clients
 			for {
+				readCtx, cancelRead := context.WithTimeout(r.Context(), 2*time.Second)
 				var raw json.RawMessage
-				if err := wsjson.Read(r.Context(), c, &raw); err != nil {
+				err := wsjson.Read(readCtx, c, &raw)
+				cancelRead()
+				if err != nil {
 					return
+				}
+				// Signal activity
+				select {
+				case activityCh <- time.Now():
+				default:
 				}
 				// Try to decode as input
 				var in inputMsg
@@ -139,6 +167,9 @@ func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.Auth
 		defer ticker.Stop()
 		telemTicker := time.NewTicker(telemetryDur)
 		defer telemTicker.Stop()
+		// idle timeout: disconnect clients idle for more than configured timeout
+		idleTimer := time.NewTimer(idleTimeout)
+		defer idleTimer.Stop()
 		lastAck := 0
 		playerID := ack.PlayerID
 		// Validate resume token before trusting LastSeq
@@ -157,6 +188,9 @@ func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.Auth
 		// writer loop
 		for {
 			select {
+			case <-idleTimer.C:
+				log.Printf("ws: disconnecting idle client %s after %v", playerID, idleTimeout)
+				return
 			case <-done:
 				// On disconnect, persist last known position (US-501)
 				if store != nil {
@@ -171,6 +205,8 @@ func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.Auth
 					}
 				}
 				return
+			case <-activityCh:
+				idleTimer.Reset(idleTimeout)
 			case in := <-inputs:
 				// clamp intent and update velocity
 				vx := clamp(in.Intent.X, -1, 1) * moveSpeed
@@ -235,7 +271,8 @@ func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.Auth
 				err := c.Ping(pingCtx)
 				cancelPing()
 				if err != nil {
-					continue
+					log.Printf("ws: ping failed for client %s: %v", playerID, err)
+					return
 				}
 				rtt := time.Since(start).Seconds() * 1000.0 // ms
 				telem := map[string]any{

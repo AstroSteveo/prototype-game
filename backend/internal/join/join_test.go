@@ -67,3 +67,70 @@ func TestHandleJoin_BadRequest(t *testing.T) {
 		t.Fatalf("expected bad_request error, got: %#v", errMsg)
 	}
 }
+
+// slowAuth simulates a slow auth service to test timeout behavior
+type slowAuth struct {
+	delay time.Duration
+}
+
+func (s slowAuth) Validate(ctx context.Context, token string) (string, string, bool) {
+	if token == "slow" {
+		select {
+		case <-time.After(s.delay):
+			return "p1", "Alice", true
+		case <-ctx.Done():
+			// Context was cancelled/timed out
+			return "", "", false
+		}
+	}
+	return "", "", false
+}
+
+func TestHandleJoin_ContextTimeout(t *testing.T) {
+	eng := newTestEngine()
+	auth := slowAuth{delay: 2 * time.Second} // Auth will take 2 seconds
+
+	// Create a context that times out in 500ms
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	start := time.Now()
+	_, errMsg := HandleJoin(ctx, auth, eng, Hello{Token: "slow"})
+	elapsed := time.Since(start)
+
+	// Should fail due to timeout, not take the full 2 seconds
+	if errMsg == nil || errMsg.Code != "auth" {
+		t.Fatalf("expected auth error due to timeout, got: %#v", errMsg)
+	}
+
+	// Should complete in less than 1 second (much less than the 2s auth delay)
+	if elapsed > time.Second {
+		t.Fatalf("HandleJoin took too long (%v), timeout context not working", elapsed)
+	}
+}
+
+func TestHTTPAuth_ClientTimeout(t *testing.T) {
+	// Create an HTTPAuth instance
+	auth := NewHTTPAuth("http://localhost:9999") // non-existent server
+
+	// Verify the client has a timeout set
+	if auth.Client.Timeout != 3*time.Second {
+		t.Fatalf("expected HTTPAuth client timeout to be 3s, got: %v", auth.Client.Timeout)
+	}
+
+	// Test that validation fails quickly when server is unreachable
+	ctx := context.Background()
+	start := time.Now()
+	_, _, ok := auth.Validate(ctx, "anytoken")
+	elapsed := time.Since(start)
+
+	// Should fail (unreachable server)
+	if ok {
+		t.Fatalf("expected validation to fail for unreachable server")
+	}
+
+	// Should complete within timeout + some buffer (4 seconds max)
+	if elapsed > 4*time.Second {
+		t.Fatalf("HTTPAuth validation took too long (%v), client timeout not working", elapsed)
+	}
+}

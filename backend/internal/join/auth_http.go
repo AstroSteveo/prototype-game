@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // HTTPAuth is an AuthService implementation that calls a gateway /validate endpoint.
@@ -14,7 +15,7 @@ type HTTPAuth struct {
 }
 
 func NewHTTPAuth(base string) *HTTPAuth {
-	return &HTTPAuth{Client: &http.Client{}, BaseURL: base}
+	return &HTTPAuth{Client: &http.Client{Timeout: 3 * time.Second}, BaseURL: base}
 }
 
 func (h *HTTPAuth) Validate(ctx context.Context, token string) (string, string, bool) {
