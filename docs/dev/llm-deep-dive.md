@@ -46,7 +46,7 @@ This whitepaper:
 
 ## Introduction and Scope
 - **Business challenge.** Users demand more intelligent automation, but deterministic rule systems plateau when contexts shift rapidly. We must evaluate if LLMs offer defensible differentiation or only incremental convenience.
-- **Scope of analysis.** Focuses on transformer-based LLMs (GPT-4, Claude 3, Gemini, Llama 3, Mistral, etc.) and the infrastructure patterns necessary to productionize them. We cover architectural concepts, reliability controls, cost implications, and evaluation metrics.
+- **Scope of analysis.** Focuses on current-generation transformer-based LLMs (e.g., GPT-family, Claude-family, Gemini, Llama, Mistral, etc.) and the infrastructure patterns necessary to productionize them. We cover architectural concepts, reliability controls, cost implications, and evaluation metrics.
 - **Out of scope.** Detailed GPU hardware sizing, fine-grained security hardening playbooks, or a formal vendor selection—those require subsequent procurement and security reviews.
 
 ## Market Landscape and Business Opportunities
