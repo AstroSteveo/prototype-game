@@ -47,7 +47,7 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 			return
 		}
 		// Handle join (resume is optional; token still required by AuthService)
-		ack, em := join.HandleJoin(r.Context(), auth, eng, hello)
+		ack, em := join.HandleJoin(ctx, auth, eng, hello)
 		if em != nil {
 			_ = wsjson.Write(ctx, c, map[string]any{"type": "error", "error": em})
 			return

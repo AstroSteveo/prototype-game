@@ -126,3 +126,88 @@ func TestWS_InputState_AckAndMotion(t *testing.T) {
 		t.Fatalf("did not observe positive X motion in time")
 	}
 }
+
+// slowAuth simulates a slow auth service to test timeout behavior
+type slowAuth struct {
+	delay time.Duration
+}
+
+func (s slowAuth) Validate(ctx context.Context, token string) (string, string, bool) {
+	if token == "slow" {
+		select {
+		case <-time.After(s.delay):
+			return "p1", "Alice", true
+		case <-ctx.Done():
+			// Context was cancelled/timed out
+			return "", "", false
+		}
+	}
+	return "", "", false
+}
+
+func TestWS_JoinTimeout_HandlesAuthTimeout(t *testing.T) {
+	eng := sim.NewEngine(sim.Config{CellSize: 10, AOIRadius: 5, TickHz: 50, SnapshotHz: 20, HandoverHysteresisM: 1})
+	eng.Start()
+	defer eng.Stop(context.Background())
+
+	// Create an auth service that takes 10 seconds to respond
+	auth := slowAuth{delay: 10 * time.Second}
+
+	mux := http.NewServeMux()
+	Register(mux, "/ws", auth, eng)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	c, _, err := nws.Dial(ctx, wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer c.Close(nws.StatusNormalClosure, "bye")
+
+	// Send hello with slow token
+	start := time.Now()
+	if err := wsjson.Write(ctx, c, map[string]any{"token": "slow"}); err != nil {
+		t.Fatalf("write hello: %v", err)
+	}
+
+	// Try to read response, expecting either an error message or connection close
+	var raw json.RawMessage
+	readCtx, readCancel := context.WithTimeout(context.Background(), 6*time.Second)
+	defer readCancel()
+
+	err = wsjson.Read(readCtx, c, &raw)
+	elapsed := time.Since(start)
+
+	// Should complete within 6 seconds (the 5s timeout + buffer), not the full 10s delay
+	if elapsed > 6*time.Second {
+		t.Fatalf("WebSocket join took too long (%v), timeout not working properly", elapsed)
+	}
+
+	if err != nil {
+		// Connection closed, which is acceptable for timeout scenarios
+		t.Logf("✓ Auth timeout handled correctly - connection closed in %v (< 6s)", elapsed)
+		return
+	}
+
+	// If we got a response, it should be an auth error
+	var env struct {
+		Type  string `json:"type"`
+		Error *struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &env); err != nil {
+		t.Fatalf("unmarshal env: %v", err)
+	}
+
+	// Should get an error response (auth timeout)
+	if env.Type != "error" || env.Error == nil || env.Error.Code != "auth" {
+		t.Fatalf("expected auth error, got: %s", string(raw))
+	}
+
+	t.Logf("✓ Auth timeout handled correctly with error message in %v (< 6s)", elapsed)
+}
