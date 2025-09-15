@@ -39,6 +39,7 @@ type Config struct {
 	SnapshotHz          int
 	HandoverHysteresisM float64
 	NodeID              string // unique identifier for this node
+	HandoverMode        string // "reconnect" or "tunnel"
 	// Bots & density control
 	TargetDensityPerCell int // desired actors (players+bots) per cell
 	MaxBots              int // global cap across all cells

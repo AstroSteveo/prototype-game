@@ -55,6 +55,7 @@ type PlayerData struct {
 type HandoverRequest struct {
 	Token      string      `json:"token"`
 	PlayerData *PlayerData `json:"player_data"`
+	TunnelMode bool        `json:"tunnel_mode,omitempty"` // If true, request tunneling instead of reconnection
 }
 
 // HandoverResponse represents the response to a handover request
@@ -63,6 +64,8 @@ type HandoverResponse struct {
 	Error        string `json:"error,omitempty"`
 	ResumeToken  string `json:"resume_token,omitempty"`
 	TargetWSURL  string `json:"target_ws_url,omitempty"`
+	TunnelMode   bool   `json:"tunnel_mode,omitempty"`   // If true, client should stay connected
+	TunnelURL    string `json:"tunnel_url,omitempty"`    // URL for tunneled connection
 }
 
 // CrossNodeHandoverService manages cross-node player transfers

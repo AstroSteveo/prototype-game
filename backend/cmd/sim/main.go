@@ -32,22 +32,23 @@ type httpConfig struct {
 func main() {
 	var (
 		port       = flag.String("port", "8081", "HTTP listen port for sim service")
-		nodeID     = flag.String("node-id", "", "unique node identifier (default: generated from hostname:port)")
-		cellSize   = flag.Float64("cell", 256, "cell size in meters")
-		aoiRadius  = flag.Float64("aoi", 128, "AOI radius in meters")
-		tickHz     = flag.Int("tick", 20, "simulation tick rate (Hz)")
-		snapshotHz = flag.Int("snap", 10, "snapshot rate (Hz)")
-		hysteresis = flag.Float64("hyst", 2, "handover hysteresis in meters")
-		gatewayURL = flag.String("gateway", "http://localhost:8080", "gateway base URL for token validation")
-		debug      = flag.Bool("debug", false, "enable debug logging (including snapshot logs)")
-		botDensity = flag.Int("bot-density", 3, "target actors (players+bots) per cell")
-		maxBots    = flag.Int("max-bots", 100, "maximum total bots across all cells")
-		storeFile  = flag.String("store-file", "", "file path for persistent player state store (default: in-memory)")
+		nodeID      = flag.String("node-id", "", "unique node identifier (default: generated from hostname:port)")
+		handoverMode = flag.String("handover-mode", "reconnect", "cross-node handover mode: 'reconnect' or 'tunnel'")
+		cellSize    = flag.Float64("cell", 256, "cell size in meters")
+		aoiRadius   = flag.Float64("aoi", 128, "AOI radius in meters")
+		tickHz      = flag.Int("tick", 20, "simulation tick rate (Hz)")
+		snapshotHz  = flag.Int("snap", 10, "snapshot rate (Hz)")
+		hysteresis  = flag.Float64("hyst", 2, "handover hysteresis in meters")
+		gatewayURL  = flag.String("gateway", "http://localhost:8080", "gateway base URL for token validation")
+		debug       = flag.Bool("debug", false, "enable debug logging (including snapshot logs)")
+		botDensity  = flag.Int("bot-density", 3, "target actors (players+bots) per cell")
+		maxBots     = flag.Int("max-bots", 100, "maximum total bots across all cells")
+		storeFile   = flag.String("store-file", "", "file path for persistent player state store (default: in-memory)")
 	)
 	flag.Parse()
 
 	// Validate configuration flags
-	if err := validateConfig(*cellSize, *aoiRadius, *tickHz, *snapshotHz, *hysteresis); err != nil {
+	if err := validateConfig(*cellSize, *aoiRadius, *tickHz, *snapshotHz, *hysteresis, *handoverMode); err != nil {
 		log.Fatalf("sim: invalid configuration: %v", err)
 	}
 
@@ -71,13 +72,14 @@ func main() {
 		SnapshotHz:           *snapshotHz,
 		HandoverHysteresisM:  *hysteresis,
 		NodeID:               defaultNodeID,
+		HandoverMode:         *handoverMode,
 		TargetDensityPerCell: *botDensity,
 		MaxBots:              *maxBots,
 		DebugSnapshot:        *debug,
 	})
 	eng.Start()
-	log.Printf("sim: started. node_id=%s tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm bot-density=%d max-bots=%d",
-		defaultNodeID, *tickHz, *snapshotHz, *cellSize, *aoiRadius, *botDensity, *maxBots)
+	log.Printf("sim: started. node_id=%s handover_mode=%s tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm bot-density=%d max-bots=%d",
+		defaultNodeID, *handoverMode, *tickHz, *snapshotHz, *cellSize, *aoiRadius, *botDensity, *maxBots)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -304,7 +306,7 @@ func parseFloat(s string, def float64) float64 {
 }
 
 // validateConfig validates configuration parameters to prevent divide-by-zero and other issues
-func validateConfig(cellSize, aoiRadius float64, tickHz, snapshotHz int, hysteresis float64) error {
+func validateConfig(cellSize, aoiRadius float64, tickHz, snapshotHz int, hysteresis float64, handoverMode string) error {
 	if cellSize <= 0 {
 		return fmt.Errorf("cell size must be > 0, got %.2f", cellSize)
 	}
@@ -319,6 +321,9 @@ func validateConfig(cellSize, aoiRadius float64, tickHz, snapshotHz int, hystere
 	}
 	if hysteresis < 0 {
 		return fmt.Errorf("handover hysteresis must be >= 0, got %.2f", hysteresis)
+	}
+	if handoverMode != "reconnect" && handoverMode != "tunnel" {
+		return fmt.Errorf("handover mode must be 'reconnect' or 'tunnel', got %s", handoverMode)
 	}
 	return nil
 }

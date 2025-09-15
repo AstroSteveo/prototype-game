@@ -366,6 +366,18 @@ func (e *Engine) DevSetVelocity(id string, vel spatial.Vec2) bool {
 	return true
 }
 
+// DevSetPosition sets a player's position directly (dev-only helper).
+func (e *Engine) DevSetPosition(id string, pos spatial.Vec2) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	p, ok := e.players[id]
+	if !ok {
+		return false
+	}
+	p.Pos = pos
+	return true
+}
+
 // DevList returns a snapshot list of current players (dev-only helper).
 func (e *Engine) DevList() []Player {
 	e.mu.RLock()

@@ -158,16 +158,60 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 				// If player's owned cell changed since last snapshot, emit a handover event first
 				if p.OwnedCell != lastCell {
 					metrics.ObserveHandoverLatency(time.Since(p.HandoverAt))
-					hov := map[string]any{
-						"type": "handover",
-						"data": map[string]any{
-							"from": lastCell,
-							"to":   p.OwnedCell,
-						},
+					
+					// Check if this is a cross-node handover
+					if p.CrossNodeHandover != nil {
+						cfg := eng.GetConfig()
+						
+						if cfg.HandoverMode == "tunnel" {
+							// Tunneling mode - keep connection open and proxy to target node
+							tunnelEvent := map[string]any{
+								"type": "handover_tunnel",
+								"data": map[string]any{
+									"from":        lastCell,
+									"to":          p.OwnedCell,
+									"target_node": p.CrossNodeHandover.TargetNode,
+									"reason":      "cross_node_transfer",
+									"tunnel_active": true,
+								},
+							}
+							hctx, cancelH := context.WithTimeout(r.Context(), 2*time.Second)
+							_ = wsjson.Write(hctx, c, tunnelEvent)
+							cancelH()
+							
+							// Continue with normal state updates (tunneled through this node)
+						} else {
+							// Reconnection mode - send handover_start and close connection
+							crossNodeEvent := map[string]any{
+								"type": "handover_start",
+								"data": map[string]any{
+									"from":        lastCell,
+									"to":          p.OwnedCell,
+									"target_node": p.CrossNodeHandover.TargetNode,
+									"reason":      "cross_node_transfer",
+								},
+							}
+							hctx, cancelH := context.WithTimeout(r.Context(), 2*time.Second)
+							_ = wsjson.Write(hctx, c, crossNodeEvent)
+							cancelH()
+							
+							// For MVP: Close connection to trigger reconnection
+							// In production: would coordinate proper handover
+							return
+						}
+					} else {
+						// Local handover - use existing logic
+						hov := map[string]any{
+							"type": "handover",
+							"data": map[string]any{
+								"from": lastCell,
+								"to":   p.OwnedCell,
+							},
+						}
+						hctx, cancelH := context.WithTimeout(r.Context(), 2*time.Second)
+						_ = wsjson.Write(hctx, c, hov)
+						cancelH()
 					}
-					hctx, cancelH := context.WithTimeout(r.Context(), 2*time.Second)
-					_ = wsjson.Write(hctx, c, hov)
-					cancelH()
 					lastCell = p.OwnedCell
 				}
 				nearby := eng.QueryAOI(p.Pos, cfg.AOIRadius, p.ID)
