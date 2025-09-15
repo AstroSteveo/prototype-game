@@ -119,3 +119,47 @@ func TestWS_ReconnectAndResume(t *testing.T) {
 		t.Fatalf("did not observe ack >= 1 after resume")
 	}
 }
+
+func TestResumeManager_Validate(t *testing.T) {
+	rm := NewResumeManager(time.Second)
+
+	// Test validation with empty inputs
+	if rm.Validate("", "") {
+		t.Error("expected false for empty token and playerID")
+	}
+	if rm.Validate("token", "") {
+		t.Error("expected false for empty playerID")
+	}
+	if rm.Validate("", "player1") {
+		t.Error("expected false for empty token")
+	}
+
+	// Issue a token for player1
+	token := rm.Issue("player1")
+	if token == "" {
+		t.Fatal("expected non-empty token")
+	}
+
+	// Test successful validation
+	if !rm.Validate(token, "player1") {
+		t.Error("expected true for valid token and matching playerID")
+	}
+
+	// Test validation with wrong player ID
+	if rm.Validate(token, "player2") {
+		t.Error("expected false for valid token but wrong playerID")
+	}
+
+	// Test validation with invalid token
+	if rm.Validate("invalid", "player1") {
+		t.Error("expected false for invalid token")
+	}
+
+	// Test validation after expiration
+	rmShort := NewResumeManager(1 * time.Millisecond)
+	tokenShort := rmShort.Issue("player1")
+	time.Sleep(2 * time.Millisecond)
+	if rmShort.Validate(tokenShort, "player1") {
+		t.Error("expected false for expired token")
+	}
+}
