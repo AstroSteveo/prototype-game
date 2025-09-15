@@ -191,8 +191,8 @@ Large language models have matured into versatile reasoning engines capable of a
   - *Hallucination.* Confident, fluent output that lacks factual grounding.
   - *KV cache.* Stored attention states that allow fast incremental decoding.
 - **Suggested Reading.**
-  - OpenAI "GPT-4 Technical Report" (2023).
-  - Anthropic "Constitutional AI" (2022).
-  - Google "Attention Is All You Need" (2017).
-  - Stanford HELM Benchmark (2022) for evaluation methodology.
+  - OpenAI. (2023). *GPT-4 Technical Report*. https://cdn.openai.com/papers/gpt-4.pdf
+  - Anthropic. (2022). *Constitutional AI: Harmlessness from AI Feedback*. https://www.anthropic.com/constitutional-ai
+  - Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). *Attention Is All You Need*. In Advances in Neural Information Processing Systems (NeurIPS 2017). https://arxiv.org/abs/1706.03762
+  - Li, X. L., et al. (2022). *Holistic Evaluation of Language Models (HELM)*. Stanford CRFM. https://crfm.stanford.edu/helm/latest/
 
