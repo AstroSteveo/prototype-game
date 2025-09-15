@@ -15,6 +15,7 @@ import (
 	"nhooyr.io/websocket/wsjson"
 
 	"prototype-game/backend/internal/sim"
+	"prototype-game/backend/internal/testutil"
 )
 
 // fakeAuth implements the join.AuthService interface without importing join in tests.
@@ -127,31 +128,13 @@ func TestWS_InputState_AckAndMotion(t *testing.T) {
 	}
 }
 
-// slowAuth simulates a slow auth service to test timeout behavior
-type slowAuth struct {
-	delay time.Duration
-}
-
-func (s slowAuth) Validate(ctx context.Context, token string) (string, string, bool) {
-	if token == "slow" {
-		select {
-		case <-time.After(s.delay):
-			return "p1", "Alice", true
-		case <-ctx.Done():
-			// Context was cancelled/timed out
-			return "", "", false
-		}
-	}
-	return "", "", false
-}
-
 func TestWS_JoinTimeout_HandlesAuthTimeout(t *testing.T) {
 	eng := sim.NewEngine(sim.Config{CellSize: 10, AOIRadius: 5, TickHz: 50, SnapshotHz: 20, HandoverHysteresisM: 1})
 	eng.Start()
 	defer eng.Stop(context.Background())
 
 	// Create an auth service that takes 10 seconds to respond
-	auth := slowAuth{delay: 10 * time.Second}
+	auth := testutil.SlowAuth{Delay: 10 * time.Second}
 
 	mux := http.NewServeMux()
 	Register(mux, "/ws", auth, eng)
