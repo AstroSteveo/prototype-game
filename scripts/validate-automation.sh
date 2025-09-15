@@ -2,7 +2,8 @@
 # Validation script for project board automation
 # This script provides instructions for manual validation since GitHub UI configuration cannot be automated
 
-set -e
+set -euo pipefail
+IFS=$'\n\t'
 
 echo "=== Project Board Automation Validation ==="
 echo
@@ -47,7 +48,7 @@ required_patterns=(
     "PROJECT_URL"
     "Status"
     "Estimate"
-    "Milestone" 
+    "Milestone"
     "Sprint"
 )
 
@@ -74,7 +75,7 @@ echo
 echo "Project Field Configuration:"
 echo "3. Create Status field (single-select) with options: Backlog, Ready, In Progress, In Review, Blocked, Done"
 echo "4. Create Estimate field (number)"
-echo "5. Create Milestone field (milestone)"  
+echo "5. Create Milestone field (milestone)"
 echo "6. Create Sprint field (iteration)"
 echo "   (Visit: https://github.com/users/AstroSteveo/projects/2/settings/fields)"
 echo
@@ -101,7 +102,7 @@ echo "   - Close issue → Status should become Done"
 echo
 echo "10. Test PR workflow:"
 echo "    - Open draft PR → Status: In Progress"
-echo "    - Mark ready for review → Status: In Review"  
+echo "    - Mark ready for review → Status: In Review"
 echo "    - Merge PR → Status: Done"
 echo
 
@@ -133,4 +134,4 @@ echo "1. Follow the manual configuration steps above"
 echo "2. Create a test issue to validate automation"
 echo "3. Monitor the Actions tab for workflow execution"
 echo
-echo "For detailed setup instructions, see: docs/project-board-setup.md"
+echo "For detailed setup instructions, see: docs/project-board-setup.md"}‬
