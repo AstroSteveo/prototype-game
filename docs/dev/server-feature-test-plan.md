@@ -4,7 +4,7 @@ This guide summarizes the backend feature set and maps each scenario to the auto
 
 ## Architecture Snapshot
 
-The simulation binary wires together the engine, persistence store, WebSocket transport, metrics, and developer HTTP endpoints, providing configurable cell sizing, snapshot rates, bot density targets, and graceful shutdown logic.【F:backend/cmd/sim/main.go†L31-L183】 Configuration validation keeps runtime flags within safe bounds and is unit tested in `TestValidateConfig`.【F:backend/cmd/sim/main.go†L200-L213】【F:backend/cmd/sim/main_test.go†L8-L120】
+The simulation binary wires together the engine, persistence store, WebSocket transport, metrics, and developer HTTP endpoints, providing configurable cell sizing, snapshot rates, bot density targets, and graceful shutdown logic ([backend/cmd/sim/main.go#L31-L183](../backend/cmd/sim/main.go#L31-L183)). Configuration validation keeps runtime flags within safe bounds and is unit tested in `TestValidateConfig` ([backend/cmd/sim/main.go#L200-L213](../backend/cmd/sim/main.go#L200-L213), [backend/cmd/sim/main_test.go#L8-L120](../backend/cmd/sim/main_test.go#L8-L120)).
 
 ## Authentication & Session Lifecycle
 
