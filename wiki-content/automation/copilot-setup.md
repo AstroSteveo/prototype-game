@@ -28,7 +28,7 @@ Build all binaries (gateway, sim with WebSocket, wsprobe):
 ```bash
 make build
 ```
-- **Time**: ~30 seconds first build, ~1 second subsequent builds
+- **Time**: ~33 seconds first build (with dependency downloads), ~1.3 seconds subsequent builds
 - **Timeout**: Set 120+ seconds for first build, 60+ seconds for subsequent builds
 - **Output**: Binaries created in `backend/bin/` directory
 
@@ -36,7 +36,7 @@ Format and validate code:
 ```bash
 make fmt vet
 ```
-- **Time**: ~3 seconds
+- **Time**: ~6.7 seconds
 - **Timeout**: 30+ seconds
 - **CRITICAL**: Always run before committing - CI will fail without proper formatting
 
@@ -46,7 +46,7 @@ Run unit tests:
 ```bash
 make test
 ```
-- **Time**: ~5 seconds
+- **Time**: ~6.3 seconds
 - **Timeout**: 60+ seconds
 - **Scope**: Tests packages under `backend/internal/`
 
@@ -54,7 +54,7 @@ Run WebSocket integration tests:
 ```bash
 make test-ws
 ```
-- **Time**: ~5 seconds 
+- **Time**: ~9.2 seconds 
 - **Timeout**: 60+ seconds
 - **Scope**: Includes WebSocket transport tests requiring `-tags ws` build flag
 
@@ -62,7 +62,7 @@ Run both format, vet, and all tests (CI validation):
 ```bash
 make fmt vet test test-ws
 ```
-- **Time**: ~15 seconds total
+- **Time**: ~22 seconds total (or ~0.7 seconds if cached)
 - **Timeout**: 120+ seconds
 - **CRITICAL**: Always run this exact sequence before pushing - matches CI requirements
 
@@ -74,7 +74,7 @@ Start both services in background:
 ```bash
 make run
 ```
-- **Time**: ~1 second after build
+- **Time**: ~0.3 seconds after build
 - **Timeout**: 60+ seconds
 - **Result**: Gateway on :8080, Sim on :8081
 - **Logs**: `backend/logs/gateway.log`, `backend/logs/sim.log`
@@ -150,7 +150,7 @@ make e2e-join
 # Automated movement test
 make e2e-move
 ```
-- **Time**: ~2 seconds each
+- **Time**: ~0.4-0.5 seconds each
 - **Timeout**: 120+ seconds
 
 ### Monitoring and Debugging
@@ -292,10 +292,13 @@ make clean                         # Remove build artifacts and logs
 ```
 
 **Timing Expectations**:
-- Initial build: ~30 seconds
-- Subsequent builds: ~1 second  
-- All tests: ~10 seconds
-- Service startup: <1 second
-- E2E scenarios: ~2 seconds each
+- Initial build: ~33 seconds (with dependency downloads)
+- Subsequent builds: ~1.3 seconds  
+- Format + vet: ~6.7 seconds
+- Unit tests: ~6.3 seconds
+- WebSocket tests: ~9.2 seconds
+- All tests: ~22 seconds (first run) or ~0.7 seconds (cached)
+- Service startup: ~0.3 seconds
+- E2E scenarios: ~0.4-0.5 seconds each
 
 **NEVER CANCEL any of these operations** - they are designed to complete quickly and canceling may leave the system in an inconsistent state.
