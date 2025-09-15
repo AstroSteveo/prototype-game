@@ -8,7 +8,7 @@ on:
 
 jobs:
   sync-to-project:
-    if: github.actor != 'dependabot[bot]' && vars.PROJECT_URL != ''
+    if: github.actor != 'dependabot[bot]' && vars.PROJECT_URL && vars.PROJECT_URL != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
