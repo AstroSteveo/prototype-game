@@ -196,8 +196,8 @@ This whitepaper:
   - *Hallucination.* Confident, fluent output that lacks factual grounding.
   - *KV cache.* Stored attention states that allow fast incremental decoding.
 - **Suggested Reading.**
-  - OpenAI. (2023). *GPT-4 Technical Report*. https://cdn.openai.com/papers/gpt-4.pdf
-  - Anthropic. (2022). *Constitutional AI: Harmlessness from AI Feedback*. https://www.anthropic.com/constitutional-ai
-  - Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). *Attention Is All You Need*. In Advances in Neural Information Processing Systems (NeurIPS 2017). https://arxiv.org/abs/1706.03762
-  - Li, X. L., et al. (2022). *Holistic Evaluation of Language Models (HELM)*. Stanford CRFM. https://crfm.stanford.edu/helm/latest/
+  - OpenAI. (2023). *GPT-4 Technical Report*. https://cdn.openai.com/papers/gpt-4.pdf (Accessed: 2024-06-01)
+  - Anthropic. (2022). *Constitutional AI: Harmlessness from AI Feedback*. https://www.anthropic.com/constitutional-ai (Accessed: 2024-06-01)
+  - Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). *Attention Is All You Need*. In Advances in Neural Information Processing Systems (NeurIPS 2017). https://arxiv.org/abs/1706.03762 (Accessed: 2024-06-01)
+  - Li, X. L., et al. (2022). *Holistic Evaluation of Language Models (HELM)*. Stanford CRFM. https://crfm.stanford.edu/helm/latest/ (Accessed: 2024-06-01)
 
