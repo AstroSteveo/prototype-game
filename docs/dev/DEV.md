@@ -1,6 +1,7 @@
 # Developer Guide
 
 This document captures day-to-day commands for building, running, and testing the project locally.
+For proposing new features or making architecture decisions, see [docs/process/FEATURE_PROPOSAL.md](../process/FEATURE_PROPOSAL.md).
 
 ## Prerequisites
 - Go 1.23++

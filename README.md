@@ -5,6 +5,8 @@ Design docs:
 - `docs/design/TDD.md` — Technical Design Document (architecture, sharding plan, milestones)
 - GitHub Issues/Project board — Backlog and progress tracking
 - `docs/dev/DEV.md` — Developer Guide (build, run, tests, Makefile)
+- `docs/process/FEATURE_PROPOSAL.md` — Feature proposal workflow
+- `docs/process/adr/` — Architecture Decision Records
 - `.github/copilot-instructions.md` — GitHub Copilot/AI agent instructions
 
 Quick start (Go backend, local dev):
