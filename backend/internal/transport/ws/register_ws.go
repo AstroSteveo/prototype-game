@@ -26,6 +26,21 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 
 // RegisterWithStore is like Register but allows wiring a persistence store (US-501).
 func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, store state.Store) {
+	RegisterWithOptions(mux, path, auth, eng, store, WSOptions{})
+}
+
+// WSOptions contains configuration options for WebSocket behavior
+type WSOptions struct {
+	IdleTimeout time.Duration // if zero, defaults to 30 seconds
+}
+
+// RegisterWithOptions allows configuring WebSocket behavior for testing
+func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, store state.Store, opts WSOptions) {
+	idleTimeout := opts.IdleTimeout
+	if idleTimeout == 0 {
+		idleTimeout = 30 * time.Second
+	}
+
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		c, err := nws.Accept(w, r, &nws.AcceptOptions{InsecureSkipVerify: true})
 		if err != nil {
@@ -33,6 +48,9 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 			return
 		}
 		defer c.Close(nws.StatusNormalClosure, "bye")
+
+		// Set read limit to prevent oversized messages (32KB)
+		c.SetReadLimit(32 << 10)
 
 		// metrics: track connected clients
 		metrics.IncWSConnected()
@@ -75,13 +93,23 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 		}
 		inputs := make(chan inputMsg, 16)
 		done := make(chan struct{})
+		activityCh := make(chan time.Time, 1)
+
 		go func() {
 			defer close(done)
-			// allow indefinite reading; use ping/pong timeouts via context deadline per message
+			// per-message read deadline to prevent hanging on slow/malicious clients
 			for {
+				readCtx, cancelRead := context.WithTimeout(r.Context(), 2*time.Second)
 				var raw json.RawMessage
-				if err := wsjson.Read(r.Context(), c, &raw); err != nil {
+				err := wsjson.Read(readCtx, c, &raw)
+				cancelRead()
+				if err != nil {
 					return
+				}
+				// Signal activity
+				select {
+				case activityCh <- time.Now():
+				default:
 				}
 				// Try to decode as input
 				var in inputMsg
@@ -109,6 +137,9 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 		defer ticker.Stop()
 		telemTicker := time.NewTicker(telemetryDur)
 		defer telemTicker.Stop()
+		// idle timeout: disconnect clients idle for more than configured timeout
+		idleTimer := time.NewTimer(idleTimeout)
+		defer idleTimer.Stop()
 		lastAck := 0
 		playerID := ack.PlayerID
 		// Validate resume token before trusting LastSeq
@@ -127,6 +158,9 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 		// writer loop
 		for {
 			select {
+			case <-idleTimer.C:
+				log.Printf("ws: disconnecting idle client %s after %v", playerID, idleTimeout)
+				return
 			case <-done:
 				// On disconnect, persist last known position (US-501)
 				if store != nil {
@@ -141,6 +175,9 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 					}
 				}
 				return
+			case activity := <-activityCh:
+				_ = activity // mark activity received
+				idleTimer.Reset(idleTimeout)
 			case in := <-inputs:
 				// clamp intent and update velocity
 				vx := clamp(in.Intent.X, -1, 1) * moveSpeed
@@ -205,7 +242,8 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 				err := c.Ping(pingCtx)
 				cancelPing()
 				if err != nil {
-					continue
+					log.Printf("ws: ping failed for client %s: %v", playerID, err)
+					return
 				}
 				rtt := time.Since(start).Seconds() * 1000.0 // ms
 				telem := map[string]any{
