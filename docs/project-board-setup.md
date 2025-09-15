@@ -106,6 +106,10 @@ Automatically extracts estimates from:
 - **Milestone**: Set from item's milestone
 - **Sprint**: New issues assigned to current iteration
 
+### Optional Tuning (Env Vars)
+- `PROJECT_SYNC_MAX_RETRIES` (default: `5`): Max attempts to find the Project item after add-to-project.
+- `PROJECT_SYNC_BASE_DELAY_MS` (default: `2000`): Initial delay for exponential backoff between retries.
+
 ## Validation
 
 ### Test Case: Create Task Issue
