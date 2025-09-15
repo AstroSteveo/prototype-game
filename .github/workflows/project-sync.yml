@@ -2,9 +2,9 @@ name: Sync items to Game Roadmap project
 
 on:
   issues:
-    types: [opened, labeled, closed, reopened]
+    types: [opened, labeled, closed, reopened, assigned, unassigned]
   pull_request:
-    types: [opened, labeled, closed, reopened]
+    types: [opened, labeled, closed, reopened, ready_for_review, converted_to_draft]
 
 jobs:
   sync-to-project:
@@ -17,6 +17,7 @@ jobs:
     steps:
       - name: Add to project
         uses: actions/add-to-project@v0.6.0
+        id: add-project
         with:
           # Set this after creating the user/org-level Project
           # Example (user project): https://github.com/users/AstroSteveo/projects/2
@@ -25,3 +26,291 @@ jobs:
           github-token: ${{ secrets.PROJECTS_TOKEN }}
           labeled: story, bug, task
           # If unlabeled, items won't be added; adjust as desired
+
+      - name: Set project fields
+        if: steps.add-project.outputs.itemId
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECTS_TOKEN }}
+          script: |
+            const projectUrl = '${{ vars.PROJECT_URL }}';
+            const itemId = '${{ steps.add-project.outputs.itemId }}';
+            
+            // Extract project info from URL
+            const urlMatch = projectUrl.match(/github\.com\/(?:users|orgs)\/([^\/]+)\/projects\/(\d+)/);
+            if (!urlMatch) {
+              console.log('Invalid project URL format');
+              return;
+            }
+            
+            const [, owner, projectNumber] = urlMatch;
+            
+            // Get project info
+            const projectQuery = `
+              query($owner: String!, $number: Int!) {
+                user(login: $owner) {
+                  projectV2(number: $number) {
+                    id
+                    fields(first: 20) {
+                      nodes {
+                        ... on ProjectV2Field {
+                          id
+                          name
+                        }
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options {
+                            id
+                            name
+                          }
+                        }
+                        ... on ProjectV2IterationField {
+                          id
+                          name
+                          configuration {
+                            iterations {
+                              id
+                              title
+                              startDate
+                              duration
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                organization(login: $owner) {
+                  projectV2(number: $number) {
+                    id
+                    fields(first: 20) {
+                      nodes {
+                        ... on ProjectV2Field {
+                          id
+                          name
+                        }
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options {
+                            id
+                            name
+                          }
+                        }
+                        ... on ProjectV2IterationField {
+                          id
+                          name
+                          configuration {
+                            iterations {
+                              id
+                              title
+                              startDate
+                              duration
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+            
+            const projectResult = await github.graphql(projectQuery, {
+              owner: owner,
+              number: parseInt(projectNumber)
+            });
+            
+            const project = projectResult.user?.projectV2 || projectResult.organization?.projectV2;
+            if (!project) {
+              console.log('Project not found');
+              return;
+            }
+            
+            const fields = project.fields.nodes;
+            console.log('Available fields:', fields.map(f => f.name));
+            
+            // Helper functions
+            function findField(name) {
+              return fields.find(f => f.name.toLowerCase() === name.toLowerCase());
+            }
+            
+            function findOption(field, optionName) {
+              return field.options?.find(o => o.name.toLowerCase() === optionName.toLowerCase());
+            }
+            
+            function getCurrentIteration(iterationField) {
+              const now = new Date();
+              return iterationField.configuration.iterations.find(iteration => {
+                const startDate = new Date(iteration.startDate);
+                const endDate = new Date(startDate.getTime() + iteration.duration * 24 * 60 * 60 * 1000);
+                return now >= startDate && now <= endDate;
+              });
+            }
+            
+            // Get event context
+            const eventType = context.eventName;
+            const action = context.payload.action;
+            const item = context.payload.issue || context.payload.pull_request;
+            const labels = item.labels?.map(l => l.name) || [];
+            
+            console.log(`Processing ${eventType}.${action} for item ${item.number}`);
+            console.log('Labels:', labels);
+            
+            // Determine Status
+            let status = null;
+            const statusField = findField('Status');
+            
+            if (statusField) {
+              // Status derivation logic
+              if (labels.includes('ready')) {
+                status = findOption(statusField, 'Ready');
+              } else if (labels.includes('blocked')) {
+                status = findOption(statusField, 'Blocked');
+              } else if (labels.includes('in-progress')) {
+                status = findOption(statusField, 'In Progress');
+              } else if (eventType === 'issues' && action === 'closed') {
+                status = findOption(statusField, 'Done');
+              } else if (eventType === 'pull_request' && action === 'ready_for_review' && !item.draft) {
+                status = findOption(statusField, 'In Review');
+              } else if (eventType === 'pull_request' && action === 'converted_to_draft') {
+                status = findOption(statusField, 'In Progress');
+              } else if (eventType === 'pull_request' && action === 'closed' && item.merged) {
+                status = findOption(statusField, 'Done');
+              } else if (eventType === 'issues' && action === 'opened') {
+                status = findOption(statusField, 'Backlog');
+              }
+              
+              if (status) {
+                console.log(`Setting Status to: ${status.name}`);
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                    updateProjectV2ItemFieldValue(input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: $value
+                    }) {
+                      projectV2Item {
+                        id
+                      }
+                    }
+                  }
+                `, {
+                  projectId: project.id,
+                  itemId: itemId,
+                  fieldId: statusField.id,
+                  value: { singleSelectOptionId: status.id }
+                });
+              }
+            }
+            
+            // Determine Estimate
+            const estimateField = findField('Estimate');
+            if (estimateField && (eventType === 'issues' && action === 'opened')) {
+              let estimate = null;
+              
+              // Check labels for estimate patterns
+              for (const label of labels) {
+                const match = label.match(/^(?:estimate|points|size):(\d+)$/i) || 
+                             label.match(/^(\d+)$/);
+                if (match) {
+                  estimate = parseInt(match[1]);
+                  break;
+                }
+              }
+              
+              // Check title for trailing [number] pattern
+              if (!estimate) {
+                const titleMatch = item.title.match(/\[(\d+)\]$/);
+                if (titleMatch) {
+                  estimate = parseInt(titleMatch[1]);
+                }
+              }
+              
+              // Map size labels to numbers
+              if (!estimate) {
+                if (labels.includes('size:xs')) estimate = 1;
+                else if (labels.includes('size:s')) estimate = 2;
+                else if (labels.includes('size:m')) estimate = 3;
+                else if (labels.includes('size:l')) estimate = 5;
+                else if (labels.includes('size:xl')) estimate = 8;
+              }
+              
+              if (estimate) {
+                console.log(`Setting Estimate to: ${estimate}`);
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                    updateProjectV2ItemFieldValue(input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: $value
+                    }) {
+                      projectV2Item {
+                        id
+                      }
+                    }
+                  }
+                `, {
+                  projectId: project.id,
+                  itemId: itemId,
+                  fieldId: estimateField.id,
+                  value: { number: estimate }
+                });
+              }
+            }
+            
+            // Set Milestone
+            const milestoneField = findField('Milestone');
+            if (milestoneField && item.milestone) {
+              console.log(`Setting Milestone to: ${item.milestone.title}`);
+              await github.graphql(`
+                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: $value
+                  }) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+              `, {
+                projectId: project.id,
+                itemId: itemId,
+                fieldId: milestoneField.id,
+                value: { text: item.milestone.title }
+              });
+            }
+            
+            // Set Sprint to current iteration for newly opened issues
+            const sprintField = findField('Sprint');
+            if (sprintField && eventType === 'issues' && action === 'opened') {
+              const currentIteration = getCurrentIteration(sprintField);
+              if (currentIteration) {
+                console.log(`Setting Sprint to: ${currentIteration.title}`);
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                    updateProjectV2ItemFieldValue(input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: $value
+                    }) {
+                      projectV2Item {
+                        id
+                      }
+                    }
+                  }
+                `, {
+                  projectId: project.id,
+                  itemId: itemId,
+                  fieldId: sprintField.id,
+                  value: { iterationId: currentIteration.id }
+                });
+              }
+            }
