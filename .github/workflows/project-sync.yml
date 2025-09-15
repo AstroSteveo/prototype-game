@@ -133,7 +133,7 @@ jobs:
             const action = context.payload.action;
             const item = context.payload.issue || context.payload.pull_request;
             const labels = (item.labels || []).map(l => l.name);
-            const contentNodeId = item.node_id; // Issue/PR node id
+            const contentNodeId = item.node_id; // GraphQL node ID for the issue/PR content (not the project item ID)
 
             console.log(`Processing ${eventType}.${action} for #${item.number} (node ${contentNodeId})`);
 
