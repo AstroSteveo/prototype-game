@@ -100,14 +100,22 @@ func (e *Engine) loop() {
 func (e *Engine) tick(dt time.Duration) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	// Integrate very simple kinematics.
+	// Integrate very simple kinematics for players.
 	for _, p := range e.players {
 		p.Pos.X += p.Vel.X * dt.Seconds()
 		p.Pos.Z += p.Vel.Z * dt.Seconds()
 	}
-	// Update bots: steer and integrate
+	// Update bots using two-phase approach: compute velocities from neighbor snapshot, then integrate.
 	for ck, cell := range e.cells {
-		for _, ent := range cell.Entities {
+		// Snapshot positions of bots at start of tick to avoid order-dependent effects.
+		neighbors := make(map[string]spatial.Vec2, len(cell.Entities))
+		for id, ent := range cell.Entities {
+			if ent.Kind == KindBot {
+				neighbors[id] = ent.Pos
+			}
+		}
+		// Phase 1: compute velocities based on snapshot.
+		for id, ent := range cell.Entities {
 			if ent.Kind != KindBot {
 				continue
 			}
@@ -117,11 +125,20 @@ func (e *Engine) tick(dt time.Duration) {
 				st = &botState{OwnedCell: ck}
 				e.bots[ent.ID] = st
 			}
-			e.updateBot(ent, dt, st)
+			e.updateBotWithNeighbors(ent, dt, st, neighbors)
+			// Ensure we have the latest position in snapshot for subsequent cells if needed
+			neighbors[id] = ent.Pos
+		}
+		// Phase 2: integrate positions and constrain within cell.
+		for _, ent := range cell.Entities {
+			if ent.Kind != KindBot {
+				continue
+			}
 			ent.Pos.X += ent.Vel.X * dt.Seconds()
 			ent.Pos.Z += ent.Vel.Z * dt.Seconds()
-			// Constrain bots to their owned cell (bounce at borders)
-			e.constrainBotWithinCell(ent, st)
+			if st, ok := e.bots[ent.ID]; ok {
+				e.constrainBotWithinCell(ent, st)
+			}
 		}
 	}
 	// Check handovers.

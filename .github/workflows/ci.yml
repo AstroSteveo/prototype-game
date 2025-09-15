@@ -43,8 +43,8 @@ jobs:
         id: cache-paths
         shell: bash
         run: |
-          echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> $GITHUB_ENV
+          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_ENV"
+          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_ENV"
 
       - name: Cache modules (GOMODCACHE)
         uses: actions/cache@v4
@@ -88,3 +88,21 @@ jobs:
       - name: Tests (ws, race)
         if: matrix.target == 'ws' && matrix.race == true
         run: make test-ws-race
+
+  actionlint:
+    name: Lint GitHub Actions workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: actionlint
+        uses: rhysd/actionlint@v1.7.1
+
+  validate-automation:
+    name: Validate project automation setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run validation script
+        run: bash scripts/validate-automation.sh

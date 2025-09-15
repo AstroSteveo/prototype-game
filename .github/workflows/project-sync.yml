@@ -1,14 +1,27 @@
+---
 name: Sync items to Game Roadmap project
 
-on:
+"on":
   issues:
-    types: [opened, labeled, closed, reopened]
+    types:
+      - opened
+      - labeled
+      - closed
+      - reopened
   pull_request:
-    types: [opened, labeled, closed, reopened]
+    types:
+      - opened
+      - labeled
+      - closed
+      - reopened
+      - ready_for_review
+      - converted_to_draft
 
 jobs:
   sync-to-project:
-    if: github.actor != 'dependabot[bot]' && vars.PROJECT_URL && vars.PROJECT_URL != ''
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      vars.PROJECT_URL
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,11 +30,288 @@ jobs:
     steps:
       - name: Add to project
         uses: actions/add-to-project@v0.6.0
+        id: add-project
         with:
           # Set this after creating the user/org-level Project
-          # Example (user project): https://github.com/users/AstroSteveo/projects/2
-          # Example (org project):  https://github.com/orgs/<org>/projects/1
+          # Example (user project):
+          # https://github.com/users/AstroSteveo/projects/2
+          # Example (org project):
+          # https://github.com/orgs/<org>/projects/1
           project-url: ${{ vars.PROJECT_URL }}
           github-token: ${{ secrets.PROJECTS_TOKEN }}
           labeled: story, bug, task
           # If unlabeled, items won't be added; adjust as desired
+
+      - name: Set project fields
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECTS_TOKEN }}
+          script: |
+            const projectUrl = '${{ vars.PROJECT_URL }}';
+
+            // Extract project info from URL
+            const urlMatch = projectUrl.match(
+              /github\.com\/(?:users|orgs)\/([^\/]+)\/projects\/(\d+)/
+            );
+            if (!urlMatch) {
+              core.setFailed('Invalid project URL format: ' + projectUrl);
+              return;
+            }
+
+            const [, owner, projectNumber] = urlMatch;
+
+            // Get project info (for user or org)
+            const projectQuery = `
+              query($owner: String!, $number: Int!) {
+                user(login: $owner) {
+                  projectV2(number: $number) {
+                    id
+                    fields(first: 50) {
+                      nodes {
+                        ... on ProjectV2Field { id name }
+                        ... on ProjectV2SingleSelectField { id name options { id name } }
+                        ... on ProjectV2IterationField {
+                          id
+                          name
+                          configuration { iterations { id title startDate duration } }
+                        }
+                      }
+                    }
+                  }
+                }
+                organization(login: $owner) {
+                  projectV2(number: $number) {
+                    id
+                    fields(first: 50) {
+                      nodes {
+                        ... on ProjectV2Field { id name }
+                        ... on ProjectV2SingleSelectField { id name options { id name } }
+                        ... on ProjectV2IterationField {
+                          id
+                          name
+                          configuration { iterations { id title startDate duration } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const projectResult = await github.graphql(projectQuery, {
+              owner: owner,
+              number: parseInt(projectNumber)
+            });
+
+            const project = projectResult.user?.projectV2 || projectResult.organization?.projectV2;
+            if (!project) {
+              core.setFailed('Project not found for ' + projectUrl);
+              return;
+            }
+
+            const fields = project.fields.nodes;
+            console.log('Available fields:', fields.map(f => f.name));
+
+            // Helper functions
+            function findField(name) {
+              return fields.find(f => f.name.toLowerCase() === name.toLowerCase());
+            }
+            function findOption(field, optionName) {
+              return field.options?.find(o => o.name.toLowerCase() === optionName.toLowerCase());
+            }
+            function getCurrentIteration(iterationField) {
+              const now = new Date();
+              return iterationField.configuration.iterations.find(iteration => {
+                const startDate = new Date(iteration.startDate);
+                const endDate = new Date(startDate.getTime() + iteration.duration * 24 * 60 * 60 * 1000);
+                return now >= startDate && now <= endDate;
+              });
+            }
+
+            // Get event context
+            const eventType = context.eventName;
+            const action = context.payload.action;
+            const item = context.payload.issue || context.payload.pull_request;
+            const labels = (item.labels || []).map(l => l.name);
+            const contentNodeId = item.node_id; // GraphQL node ID for the issue/PR content (not the project item ID)
+
+            console.log(`Processing ${eventType}.${action} for #${item.number} (node ${contentNodeId})`);
+
+            // Resolve the ProjectV2 item for this content
+            const itemQuery = `
+              query($contentId: ID!, $projectId: ID!) {
+                node(id: $contentId) {
+                  ... on Issue { projectItems(first: 50, includeArchived: true) { nodes { id project { id } } } }
+                  ... on PullRequest { projectItems(first: 50, includeArchived: true) { nodes { id project { id } } } }
+                }
+              }
+            `;
+
+            async function findProjectItemId() {
+              const itemQueryResult = await github.graphql(itemQuery, {
+                contentId: contentNodeId,
+                projectId: project.id,
+              });
+              return itemQueryResult.node?.projectItems?.nodes?.find(n => n.project?.id === project.id)?.id;
+            }
+
+            // Configurable retry parameters (with defaults)
+            const maxRetries = process.env.PROJECT_SYNC_MAX_RETRIES ? parseInt(process.env.PROJECT_SYNC_MAX_RETRIES, 10) : 5;
+            const baseDelayMs = process.env.PROJECT_SYNC_BASE_DELAY_MS ? parseInt(process.env.PROJECT_SYNC_BASE_DELAY_MS, 10) : 2000;
+
+            let projectItemId = await findProjectItemId();
+            let attempt = 0;
+            while (!projectItemId && attempt < maxRetries) {
+              const delay = baseDelayMs * Math.pow(2, attempt); // exponential backoff
+              console.log(`Item not yet in project; waiting ${delay}ms then re-check (attempt ${attempt + 1}/${maxRetries})…`);
+              await new Promise(r => setTimeout(r, delay));
+              projectItemId = await findProjectItemId();
+              attempt++;
+            }
+
+            if (!projectItemId) {
+              core.setFailed(`Item not found in project after ${maxRetries} retries; expected add-to-project to add labeled items.`);
+              return;
+            }
+
+            // Determine Status
+            let status = null;
+            const statusField = findField('Status');
+            if (statusField) {
+              if (labels.includes('ready')) {
+                status = findOption(statusField, 'Ready');
+              } else if (labels.includes('blocked')) {
+                status = findOption(statusField, 'Blocked');
+              } else if (labels.includes('in-progress')) {
+                status = findOption(statusField, 'In Progress');
+              } else if (eventType === 'issues' && action === 'closed') {
+                status = findOption(statusField, 'Done');
+              } else if (eventType === 'pull_request' && action === 'ready_for_review' && !item.draft) {
+                status = findOption(statusField, 'In Review');
+              } else if (eventType === 'pull_request' && action === 'converted_to_draft') {
+                status = findOption(statusField, 'In Progress');
+              } else if (eventType === 'pull_request' && action === 'closed' && item.merged) {
+                status = findOption(statusField, 'Done');
+              } else if (eventType === 'issues' && action === 'opened') {
+                status = findOption(statusField, 'Backlog');
+              }
+
+              if (status) {
+                console.log(`Setting Status to: ${status.name}`);
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                    updateProjectV2ItemFieldValue(input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }) {
+                      projectV2Item { id }
+                    }
+                  }
+                `, {
+                  projectId: project.id,
+                  itemId: projectItemId,
+                  fieldId: statusField.id,
+                  value: { singleSelectOptionId: status.id }
+                });
+              }
+            }
+
+            // Determine Estimate (on issue opened)
+            const estimateField = findField('Estimate');
+            if (estimateField && eventType === 'issues' && action === 'opened') {
+              let estimate = null;
+
+              // Labels: estimate:3, points:3
+              for (const label of labels) {
+                const m = label.match(/^(?:estimate|points):(\d+)$/i);
+                if (m) { estimate = parseInt(m[1], 10); break; }
+              }
+
+              // Title trailing [number]
+              if (!estimate) {
+                const m = item.title.match(/\[(\d+)\]$/);
+                if (m) estimate = parseInt(m[1], 10);
+              }
+
+              // Size labels mapping
+              if (!estimate) {
+                if (labels.includes('size:xs')) estimate = 1;
+                else if (labels.includes('size:s')) estimate = 2;
+                else if (labels.includes('size:m')) estimate = 3;
+                else if (labels.includes('size:l')) estimate = 5;
+                else if (labels.includes('size:xl')) estimate = 8;
+              }
+
+              if (estimate) {
+                console.log(`Setting Estimate to: ${estimate}`);
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                    updateProjectV2ItemFieldValue(input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }) {
+                      projectV2Item { id }
+                    }
+                  }
+                `, {
+                  projectId: project.id,
+                  itemId: projectItemId,
+                  fieldId: estimateField.id,
+                  value: { number: estimate }
+                });
+              }
+            }
+
+            // Set Milestone (use milestoneId)
+            const milestoneField = findField('Milestone');
+            if (milestoneField && item.milestone && typeof item.milestone.number === 'number') {
+              try {
+                const msQuery = `
+                  query($owner: String!, $repo: String!, $number: Int!) {
+                    repository(owner: $owner, name: $repo) {
+                      milestone(number: $number) { id title }
+                    }
+                  }
+                `;
+                const msRes = await github.graphql(msQuery, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  number: item.milestone.number,
+                });
+                const milestoneNodeId = msRes.repository?.milestone?.id;
+                if (milestoneNodeId) {
+                  console.log('Setting Milestone by node id');
+                  await github.graphql(`
+                    mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                      updateProjectV2ItemFieldValue(input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }) {
+                        projectV2Item { id }
+                      }
+                    }
+                  `, {
+                    projectId: project.id,
+                    itemId: projectItemId,
+                    fieldId: milestoneField.id,
+                    value: { milestoneId: milestoneNodeId }
+                  });
+                } else {
+                  core.warning('Milestone node id not found; skipping milestone update');
+                }
+              } catch (e) {
+                core.warning('Failed to resolve milestone id: ' + (e && e.message ? e.message : e));
+              }
+            }
+
+            // Set Sprint to current iteration for newly opened issues
+            const sprintField = findField('Sprint');
+            if (sprintField && eventType === 'issues' && action === 'opened') {
+              const currentIteration = getCurrentIteration(sprintField);
+              if (currentIteration) {
+                console.log(`Setting Sprint to: ${currentIteration.title}`);
+                await github.graphql(`
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                    updateProjectV2ItemFieldValue(input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }) {
+                      projectV2Item { id }
+                    }
+                  }
+                `, {
+                  projectId: project.id,
+                  itemId: projectItemId,
+                  fieldId: sprintField.id,
+                  value: { iterationId: currentIteration.id }
+                });
+              }
+            }

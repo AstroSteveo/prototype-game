@@ -127,6 +127,48 @@ From the repo root:
 - CLI probe: `backend/cmd/wsprobe`
 - Backlog/TDD: GitHub issues, `docs/design/TDD.md`
 
+## Automation
+
+The project uses automated workflows to keep the [Game Roadmap Project](https://github.com/users/AstroSteveo/projects/2) in sync with repository activity.
+
+### Project Board Automation
+
+**GitHub Action (`.github/workflows/project-sync.yml`):**
+- Auto-adds issues/PRs labeled `story`, `bug`, or `task` to the project
+- Sets fields based on labels and events:
+  - **Status**: Derived from labels (`ready`, `blocked`, `in-progress`) and events (issue opened → Backlog, issue closed → Done, PR ready_for_review → In Review, PR merged → Done)
+  - **Estimate**: Parsed from labels (`estimate:3`, `points:3`, `size:m`) or title patterns (`[3]`)
+  - **Milestone**: Set to the item's milestone
+  - **Sprint**: Set to current iteration for newly opened issues
+
+**Project UI Workflows** (configured in Project settings):
+- Item added → Status: Backlog
+- Item assigned → Status: In Progress  
+- Issue closed → Status: Done
+- PR merged → Status: Done
+- Auto-archive items 14 days after Status becomes Done
+
+### Retrigger Sync
+
+If automation doesn't trigger or needs to be re-run:
+1. Re-edit the issue/PR (add a space, save)
+2. Add/remove a relevant label (`story`, `bug`, `task`)
+3. Check repository variables/secrets are configured correctly
+
+### Configuration Requirements
+
+**Repository Variables:**
+- `PROJECT_URL`: `https://github.com/users/AstroSteveo/projects/2`
+
+**Repository Secrets:**
+- `PROJECTS_TOKEN`: Fine-grained PAT with write access to the target Project and this repo
+
+**Project Fields** (must match exactly):
+- `Status` (single-select): Backlog, Ready, In Progress, In Review, Blocked, Done
+- `Estimate` (number)
+- `Milestone` (milestone)
+- `Sprint` (iteration)
+
 ## Story Checklist (Copy into PR description)
 - [ ] Acceptance criteria implemented and exercised
 - [ ] Unit tests added/updated and passing (`make test`)
