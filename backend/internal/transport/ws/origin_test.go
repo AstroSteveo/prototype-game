@@ -125,7 +125,7 @@ func TestOriginValidation_ProductionMode_SameOriginAllowed(t *testing.T) {
 	defer cancel()
 
 	// Test with same origin as the server - should succeed in production mode
-	serverOrigin := strings.Replace(srv.URL, "http://", "http://", 1)
+	serverOrigin := srv.URL
 	headers := http.Header{}
 	headers.Set("Origin", serverOrigin)
 
