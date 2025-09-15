@@ -21,8 +21,7 @@ jobs:
   sync-to-project:
     if: >-
       github.actor != 'dependabot[bot]' &&
-      vars.PROJECT_URL != '' &&
-      secrets.PROJECTS_TOKEN != ''
+      vars.PROJECT_URL != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
