@@ -155,15 +155,22 @@ jobs:
               return itemQueryResult.node?.projectItems?.nodes?.find(n => n.project?.id === project.id)?.id;
             }
 
+            // Configurable retry parameters (with defaults)
+            const maxRetries = process.env.PROJECT_SYNC_MAX_RETRIES ? parseInt(process.env.PROJECT_SYNC_MAX_RETRIES, 10) : 5;
+            const baseDelayMs = process.env.PROJECT_SYNC_BASE_DELAY_MS ? parseInt(process.env.PROJECT_SYNC_BASE_DELAY_MS, 10) : 2000;
+
             let projectItemId = await findProjectItemId();
-            if (!projectItemId) {
-              console.log('Item not yet in project; waiting 3s then re-check…');
-              await new Promise(r => setTimeout(r, 3000));
+            let attempt = 0;
+            while (!projectItemId && attempt < maxRetries) {
+              const delay = baseDelayMs * Math.pow(2, attempt); // exponential backoff
+              console.log(`Item not yet in project; waiting ${delay}ms then re-check (attempt ${attempt + 1}/${maxRetries})…`);
+              await new Promise(r => setTimeout(r, delay));
               projectItemId = await findProjectItemId();
+              attempt++;
             }
 
             if (!projectItemId) {
-              core.setFailed('Item not found in project; expected add-to-project to add labeled items.');
+              core.setFailed(`Item not found in project after ${maxRetries} retries; expected add-to-project to add labeled items.`);
               return;
             }
 
@@ -211,9 +218,9 @@ jobs:
             if (estimateField && eventType === 'issues' && action === 'opened') {
               let estimate = null;
 
-              // Labels: estimate:3, points:3, size:3
+              // Labels: estimate:3, points:3
               for (const label of labels) {
-                const m = label.match(/^(?:estimate|points|size):(\d+)$/i);
+                const m = label.match(/^(?:estimate|points):(\d+)$/i);
                 if (m) { estimate = parseInt(m[1], 10); break; }
               }
 
