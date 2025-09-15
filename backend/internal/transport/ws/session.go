@@ -51,4 +51,14 @@ func (m *ResumeManager) Lookup(token string) (string, bool) {
 	return e.playerID, true
 }
 
+// Validate checks if a resume token is valid for the specified player ID.
+// This method provides a cleaner interface for resume token validation.
+func (m *ResumeManager) Validate(token, playerID string) bool {
+	if token == "" || playerID == "" {
+		return false
+	}
+	resumePlayerID, ok := m.Lookup(token)
+	return ok && resumePlayerID == playerID
+}
+
 var defaultResume = NewResumeManager(60 * time.Second)

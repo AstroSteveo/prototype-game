@@ -14,4 +14,4 @@ backend/.pids/
 .code/
 
 # Godot MCP server - ignored because it's a paid plugin
-client/addons/gdai-mcp-plugin-godot/
+client/addons/gdai-mcp-plugin-godot/backend/sim

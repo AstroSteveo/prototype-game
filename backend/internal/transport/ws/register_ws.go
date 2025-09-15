@@ -175,11 +175,9 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 		playerID := ack.PlayerID
 		// Validate resume token before trusting LastSeq
 		if hello.Resume != "" {
-			if resumePlayerID, ok := defaultResume.Lookup(hello.Resume); ok {
-				if resumePlayerID == playerID {
-					// Restore lastAck from hello.LastSeq when resume token is valid
-					lastAck = hello.LastSeq
-				}
+			if defaultResume.Validate(hello.Resume, playerID) {
+				// Restore lastAck from hello.LastSeq when resume token is valid
+				lastAck = hello.LastSeq
 			}
 		}
 		lastCell := ack.Cell // track last known owned cell to emit handover events
