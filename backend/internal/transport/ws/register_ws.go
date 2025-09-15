@@ -31,12 +31,13 @@ func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, e
 
 // RegisterWithStoreAndDevMode is like RegisterWithStore but allows configuring dev mode for relaxed security.
 func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, store state.Store, devMode bool) {
-	RegisterWithOptions(mux, path, auth, eng, store, WSOptions{})
+	RegisterWithOptions(mux, path, auth, eng, store, WSOptions{DevMode: devMode})
 }
 
 // WSOptions contains configuration options for WebSocket behavior
 type WSOptions struct {
 	IdleTimeout time.Duration // if zero, defaults to 30 seconds
+	DevMode     bool          // if true, enables relaxed security for local testing
 }
 
 // RegisterWithOptions allows configuring WebSocket behavior for testing
@@ -49,7 +50,7 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		// Configure WebSocket accept options based on dev mode
 		var acceptOptions *nws.AcceptOptions
-		if devMode {
+		if opts.DevMode {
 			// Development mode: relaxed security for local testing
 			acceptOptions = &nws.AcceptOptions{InsecureSkipVerify: true}
 		} else {
