@@ -41,6 +41,7 @@ func main() {
 		botDensity = flag.Int("bot-density", 3, "target actors (players+bots) per cell")
 		maxBots    = flag.Int("max-bots", 100, "maximum total bots across all cells")
 		storeFile  = flag.String("store-file", "", "file path for persistent player state store (default: in-memory)")
+		devMode    = flag.Bool("dev", false, "enable development mode (relaxed WebSocket origin checks)")
 	)
 	flag.Parse()
 
@@ -107,7 +108,7 @@ func main() {
 	}
 	join.SetStore(st)
 	auth := join.NewHTTPAuth(*gatewayURL)
-	transportws.RegisterWithStore(mux, "/ws", auth, eng, st)
+	transportws.RegisterWithStoreAndDevMode(mux, "/ws", auth, eng, st, *devMode)
 	// Dev endpoints to poke the engine without a client transport yet.
 	mux.HandleFunc("/dev/spawn", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()

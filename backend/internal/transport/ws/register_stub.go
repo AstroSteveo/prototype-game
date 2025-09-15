@@ -18,6 +18,11 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 
 // RegisterWithStore is a placeholder when ws is disabled.
 func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, _ state.Store) {
+	RegisterWithStoreAndDevMode(mux, path, auth, eng, nil, false)
+}
+
+// RegisterWithStoreAndDevMode is a placeholder when ws is disabled.
+func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, _ state.Store, _ bool) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "websocket transport not built (use -tags ws)", http.StatusNotImplemented)
 	})

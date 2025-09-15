@@ -26,8 +26,32 @@ func Register(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.E
 
 // RegisterWithStore is like Register but allows wiring a persistence store (US-501).
 func RegisterWithStore(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, store state.Store) {
+	RegisterWithStoreAndDevMode(mux, path, auth, eng, store, false)
+}
+
+// RegisterWithStoreAndDevMode is like RegisterWithStore but allows configuring dev mode for relaxed security.
+func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.AuthService, eng *sim.Engine, store state.Store, devMode bool) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		c, err := nws.Accept(w, r, &nws.AcceptOptions{InsecureSkipVerify: true})
+		// Configure WebSocket accept options based on dev mode
+		var acceptOptions *nws.AcceptOptions
+		if devMode {
+			// Development mode: relaxed security for local testing
+			acceptOptions = &nws.AcceptOptions{InsecureSkipVerify: true}
+		} else {
+			// Production mode: strict origin checking with localhost allowlist
+			acceptOptions = &nws.AcceptOptions{
+				OriginPatterns: []string{
+					"localhost",
+					"localhost:*",
+					"127.0.0.1",
+					"127.0.0.1:*",
+					"[::1]",
+					"[::1]:*",
+				},
+			}
+		}
+
+		c, err := nws.Accept(w, r, acceptOptions)
 		if err != nil {
 			log.Printf("ws accept: %v", err)
 			return
