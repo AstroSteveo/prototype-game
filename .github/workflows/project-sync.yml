@@ -8,8 +8,6 @@ name: Sync items to Game Roadmap project
       - labeled
       - closed
       - reopened
-      - assigned
-      - unassigned
   pull_request:
     types:
       - opened
@@ -23,7 +21,7 @@ jobs:
   sync-to-project:
     if: >-
       github.actor != 'dependabot[bot]' &&
-      vars.PROJECT_URL && vars.PROJECT_URL != ''
+      vars.PROJECT_URL
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -139,39 +137,33 @@ jobs:
 
             console.log(`Processing ${eventType}.${action} for #${item.number} (node ${contentNodeId})`);
 
-            // Resolve or create the ProjectV2 item for this content
+            // Resolve the ProjectV2 item for this content
             const itemQuery = `
               query($contentId: ID!, $projectId: ID!) {
                 node(id: $contentId) {
                   ... on Issue { projectItems(first: 50, includeArchived: true) { nodes { id project { id } } } }
                   ... on PullRequest { projectItems(first: 50, includeArchived: true) { nodes { id project { id } } } }
                 }
-                nodeProject: node(id: $projectId) { __typename id }
               }
             `;
 
-            const itemQueryResult = await github.graphql(itemQuery, {
-              contentId: contentNodeId,
-              projectId: project.id,
-            });
+            async function findProjectItemId() {
+              const itemQueryResult = await github.graphql(itemQuery, {
+                contentId: contentNodeId,
+                projectId: project.id,
+              });
+              return itemQueryResult.node?.projectItems?.nodes?.find(n => n.project?.id === project.id)?.id;
+            }
 
-            let projectItemId = itemQueryResult.node?.projectItems?.nodes?.find(n => n.project?.id === project.id)?.id;
-
+            let projectItemId = await findProjectItemId();
             if (!projectItemId) {
-              console.log('Item not yet in project; adding via GraphQL...');
-              const addMutation = `
-                mutation($projectId: ID!, $contentId: ID!) {
-                  addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
-                    item { id }
-                  }
-                }
-              `;
-              const addRes = await github.graphql(addMutation, { projectId: project.id, contentId: contentNodeId });
-              projectItemId = addRes.addProjectV2ItemById?.item?.id;
+              console.log('Item not yet in project; waiting 3s then re-check…');
+              await new Promise(r => setTimeout(r, 3000));
+              projectItemId = await findProjectItemId();
             }
 
             if (!projectItemId) {
-              core.setFailed('Unable to resolve ProjectV2 item id');
+              core.setFailed('Item not found in project; expected add-to-project to add labeled items.');
               return;
             }
 
@@ -219,9 +211,9 @@ jobs:
             if (estimateField && eventType === 'issues' && action === 'opened') {
               let estimate = null;
 
-              // Labels: estimate:3, points:3, size:3 or numeric
+              // Labels: estimate:3, points:3, size:3
               for (const label of labels) {
-                const m = label.match(/^(?:estimate|points|size):(\d+)$/i) || label.match(/^(\d+)$/);
+                const m = label.match(/^(?:estimate|points|size):(\d+)$/i);
                 if (m) { estimate = parseInt(m[1], 10); break; }
               }
 
@@ -257,22 +249,43 @@ jobs:
               }
             }
 
-            // Set Milestone
+            // Set Milestone (use milestoneId)
             const milestoneField = findField('Milestone');
-            if (milestoneField && item.milestone) {
-              console.log(`Setting Milestone to: ${item.milestone.title}`);
-              await github.graphql(`
-                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-                  updateProjectV2ItemFieldValue(input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }) {
-                    projectV2Item { id }
+            if (milestoneField && item.milestone && typeof item.milestone.number === 'number') {
+              try {
+                const msQuery = `
+                  query($owner: String!, $repo: String!, $number: Int!) {
+                    repository(owner: $owner, name: $repo) {
+                      milestone(number: $number) { id title }
+                    }
                   }
+                `;
+                const msRes = await github.graphql(msQuery, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  number: item.milestone.number,
+                });
+                const milestoneNodeId = msRes.repository?.milestone?.id;
+                if (milestoneNodeId) {
+                  console.log('Setting Milestone by node id');
+                  await github.graphql(`
+                    mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+                      updateProjectV2ItemFieldValue(input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }) {
+                        projectV2Item { id }
+                      }
+                    }
+                  `, {
+                    projectId: project.id,
+                    itemId: projectItemId,
+                    fieldId: milestoneField.id,
+                    value: { milestoneId: milestoneNodeId }
+                  });
+                } else {
+                  core.warning('Milestone node id not found; skipping milestone update');
                 }
-              `, {
-                projectId: project.id,
-                itemId: projectItemId,
-                fieldId: milestoneField.id,
-                value: { text: item.milestone.title }
-              });
+              } catch (e) {
+                core.warning('Failed to resolve milestone id: ' + (e && e.message ? e.message : e));
+              }
             }
 
             // Set Sprint to current iteration for newly opened issues
