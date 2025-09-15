@@ -79,7 +79,7 @@ if ! grep -q "https://github.com/users/AstroSteveo/projects/2" "$DOCS_FILE"; the
 fi
 echo "✅ Documentation contains correct PROJECT_URL"
 
-if ! grep -q "scopes.*project.*repo" "$DOCS_FILE"; then
+if ! grep -q "scopes:.*project.*repo" "$DOCS_FILE"; then
     echo "❌ Documentation missing correct token scopes"
     exit 1
 fi
