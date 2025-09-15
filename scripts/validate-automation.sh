@@ -123,15 +123,18 @@ else
 fi
 
 echo
+
 echo "=== Validation Summary ==="
 echo "✓ Workflow file exists and contains required automation logic"
 echo "✓ Documentation created for manual setup steps"
 echo "⚠ Manual configuration required in GitHub UI for complete setup"
 echo "⚠ Test issue creation required for end-to-end validation"
 echo
+
 echo "Next steps:"
 echo "1. Follow the manual configuration steps above"
 echo "2. Create a test issue to validate automation"
 echo "3. Monitor the Actions tab for workflow execution"
 echo
-echo "For detailed setup instructions, see: docs/project-board-setup.md"}‬
+
+echo "For detailed setup instructions, see: docs/project-board-setup.md"
