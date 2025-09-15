@@ -84,7 +84,7 @@ This whitepaper:
 - **Special/control tokens.** Reserved IDs represent system messages, end-of-sequence markers, and tool/function call boundaries. Proper placement is mandatory for orchestrating multi-turn conversations or tool invocations.
 
 ### Context Windows and Memory Strategies
-- **Limits.** Models operate within a fixed context window (e.g., 8k, 32k, 200k tokens). Inputs beyond the limit require chunking, summarization, or external memory.
+- **Limits.** Models operate within a fixed context window (e.g., 16k, 32k, 128k, 200k, up to 1M tokens in cutting-edge models). Inputs beyond the limit require chunking, summarization, or external memory. Context window sizes are rapidly increasing and vary by model.
 - **Positional encodings.** Sinusoidal, rotary (RoPE), and learned encodings encode order. Techniques like ALiBi and attention scaling extend effective context, while long-context models retrain with modified positional schemes.
 - **Memory extensions.** Strategies include sliding window attention, recurrent state compression, memory tokens, or hierarchical chunking. Retrieval-augmented generation (RAG) attaches relevant documents at inference time to simulate long-term memory.
 
