@@ -38,16 +38,22 @@ func RegisterWithStoreAndDevMode(mux *http.ServeMux, path string, auth join.Auth
 			// Development mode: relaxed security for local testing
 			acceptOptions = &nws.AcceptOptions{InsecureSkipVerify: true}
 		} else {
-			// Production mode: strict origin checking with localhost allowlist
+			// Production mode: strict origin checking with localhost and same-origin allowlist
+			originPatterns := []string{
+				"localhost",
+				"localhost:*",
+				"127.0.0.1",
+				"127.0.0.1:*",
+				"[::1]",
+				"[::1]:*",
+			}
+			// Add the server's own host (same-origin) to the allowlist
+			if r.Host != "" {
+				originPatterns = append(originPatterns, r.Host)
+				originPatterns = append(originPatterns, r.Host+":*")
+			}
 			acceptOptions = &nws.AcceptOptions{
-				OriginPatterns: []string{
-					"localhost",
-					"localhost:*",
-					"127.0.0.1",
-					"127.0.0.1:*",
-					"[::1]",
-					"[::1]:*",
-				},
+				OriginPatterns: originPatterns,
 			}
 		}
 
