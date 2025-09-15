@@ -139,7 +139,7 @@ This whitepaper:
 - **Alignment side effects.** Reinforcement learning for helpfulness may encourage confident language even when the model is uncertain.
 
 ### Mitigation Strategies
-1. **Prompt engineering.** Provide explicit instructions, require citations, and encourage deferral when uncertain ("respond with `NO_ANSWER` if unsure").
+1. **Prompt engineering.** Provide explicit instructions, require citations, and encourage deferral when uncertain ("respond with \"NO_ANSWER\" if unsure").
 2. **Retrieval grounding.** Pair models with curated knowledge bases, ensuring retrieved context is timestamped and access-controlled.
 3. **Tool verification.** Use external calculators, policy checkers, and databases to validate claims; escalate anomalies to human reviewers.
 4. **Decoding controls.** Lower temperature, apply nucleus sampling thresholds, or leverage contrastive decoding to favor factual completions.
