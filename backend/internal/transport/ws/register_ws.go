@@ -175,8 +175,7 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 					}
 				}
 				return
-			case activity := <-activityCh:
-				_ = activity // mark activity received
+			case <-activityCh:
 				idleTimer.Reset(idleTimeout)
 			case in := <-inputs:
 				// clamp intent and update velocity
