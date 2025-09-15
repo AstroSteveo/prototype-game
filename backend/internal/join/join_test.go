@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"prototype-game/backend/internal/sim"
+	"prototype-game/backend/internal/testutil"
 )
 
 type fakeAuth map[string][2]string // token -> [playerID, name]
@@ -68,27 +69,9 @@ func TestHandleJoin_BadRequest(t *testing.T) {
 	}
 }
 
-// slowAuth simulates a slow auth service to test timeout behavior
-type slowAuth struct {
-	delay time.Duration
-}
-
-func (s slowAuth) Validate(ctx context.Context, token string) (string, string, bool) {
-	if token == "slow" {
-		select {
-		case <-time.After(s.delay):
-			return "p1", "Alice", true
-		case <-ctx.Done():
-			// Context was cancelled/timed out
-			return "", "", false
-		}
-	}
-	return "", "", false
-}
-
 func TestHandleJoin_ContextTimeout(t *testing.T) {
 	eng := newTestEngine()
-	auth := slowAuth{delay: 2 * time.Second} // Auth will take 2 seconds
+	auth := testutil.SlowAuth{Delay: 2 * time.Second} // Auth will take 2 seconds
 
 	// Create a context that times out in 500ms
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
