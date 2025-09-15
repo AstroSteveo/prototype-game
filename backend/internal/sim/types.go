@@ -24,11 +24,12 @@ type Entity struct {
 
 type Player struct {
 	Entity
-	OwnedCell  spatial.CellKey
-	PrevCell   spatial.CellKey // Previous cell for anti-thrash logic
-	HandoverAt time.Time
-	ConnID     string // placeholder for connection id
-	LastSeq    int
+	OwnedCell         spatial.CellKey
+	PrevCell          spatial.CellKey // Previous cell for anti-thrash logic
+	HandoverAt        time.Time
+	ConnID            string // placeholder for connection id
+	LastSeq           int
+	CrossNodeHandover *CrossNodeHandoverState // pending cross-node handover
 }
 
 type Config struct {
@@ -37,6 +38,7 @@ type Config struct {
 	TickHz              int
 	SnapshotHz          int
 	HandoverHysteresisM float64
+	NodeID              string // unique identifier for this node
 	// Bots & density control
 	TargetDensityPerCell int // desired actors (players+bots) per cell
 	MaxBots              int // global cap across all cells

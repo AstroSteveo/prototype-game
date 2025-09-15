@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -31,6 +32,7 @@ type httpConfig struct {
 func main() {
 	var (
 		port       = flag.String("port", "8081", "HTTP listen port for sim service")
+		nodeID     = flag.String("node-id", "", "unique node identifier (default: generated from hostname:port)")
 		cellSize   = flag.Float64("cell", 256, "cell size in meters")
 		aoiRadius  = flag.Float64("aoi", 128, "AOI radius in meters")
 		tickHz     = flag.Int("tick", 20, "simulation tick rate (Hz)")
@@ -52,19 +54,30 @@ func main() {
 	// Initialize Prometheus metrics registry and collectors
 	metrics.Init()
 
+	// Generate default node ID if not provided
+	defaultNodeID := *nodeID
+	if defaultNodeID == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			hostname = "localhost"
+		}
+		defaultNodeID = fmt.Sprintf("%s:%s", hostname, *port)
+	}
+
 	eng := sim.NewEngine(sim.Config{
 		CellSize:             *cellSize,
 		AOIRadius:            *aoiRadius,
 		TickHz:               *tickHz,
 		SnapshotHz:           *snapshotHz,
 		HandoverHysteresisM:  *hysteresis,
+		NodeID:               defaultNodeID,
 		TargetDensityPerCell: *botDensity,
 		MaxBots:              *maxBots,
 		DebugSnapshot:        *debug,
 	})
 	eng.Start()
-	log.Printf("sim: started. tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm bot-density=%d max-bots=%d",
-		*tickHz, *snapshotHz, *cellSize, *aoiRadius, *botDensity, *maxBots)
+	log.Printf("sim: started. node_id=%s tick=%dHz snap=%dHz cell=%.0fm aoi=%.0fm bot-density=%d max-bots=%d",
+		defaultNodeID, *tickHz, *snapshotHz, *cellSize, *aoiRadius, *botDensity, *maxBots)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +121,28 @@ func main() {
 	join.SetStore(st)
 	auth := join.NewHTTPAuth(*gatewayURL)
 	transportws.RegisterWithStore(mux, "/ws", auth, eng, st)
+	
+	// Setup cross-node handover service
+	portInt := 8081
+	if parsed, err := strconv.Atoi(*port); err == nil {
+		portInt = parsed
+	}
+	crossNodeSvc := sim.NewHTTPCrossNodeService(defaultNodeID, portInt)
+	crossNodeSvc.RegisterHandoverEndpoint(mux)
+	eng.SetCrossNodeHandoverService(crossNodeSvc)
+	
+	// Start token cleanup routine
+	go func() {
+		ticker := time.NewTicker(60 * time.Second) // cleanup every minute
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				crossNodeSvc.CleanupExpiredTokens()
+			}
+		}
+	}()
+	
 	// Dev endpoints to poke the engine without a client transport yet.
 	mux.HandleFunc("/dev/spawn", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
@@ -144,6 +179,76 @@ func main() {
 	mux.HandleFunc("/dev/entities", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(eng.DevListAllEntities())
+	})
+	
+	// Cross-node dev endpoints
+	mux.HandleFunc("/dev/node/register", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		nodeID := q.Get("id")
+		address := q.Get("address")
+		portStr := q.Get("port")
+		
+		if nodeID == "" || address == "" || portStr == "" {
+			http.Error(w, "Missing required parameters: id, address, port", http.StatusBadRequest)
+			return
+		}
+		
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			http.Error(w, "Invalid port", http.StatusBadRequest)
+			return
+		}
+		
+		nodeInfo := &sim.NodeInfo{
+			ID:      nodeID,
+			Address: address,
+			Port:    port,
+		}
+		eng.RegisterNode(nodeInfo)
+		
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status": "registered",
+			"node_id": nodeID,
+		})
+	})
+	
+	mux.HandleFunc("/dev/node/assign-cell", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		nodeID := q.Get("node_id")
+		cxStr := q.Get("cx")
+		czStr := q.Get("cz")
+		
+		if nodeID == "" || cxStr == "" || czStr == "" {
+			http.Error(w, "Missing required parameters: node_id, cx, cz", http.StatusBadRequest)
+			return
+		}
+		
+		cx, err1 := strconv.Atoi(cxStr)
+		cz, err2 := strconv.Atoi(czStr)
+		if err1 != nil || err2 != nil {
+			http.Error(w, "Invalid cell coordinates", http.StatusBadRequest)
+			return
+		}
+		
+		cell := spatial.CellKey{Cx: cx, Cz: cz}
+		eng.AssignCellToNode(cell, nodeID)
+		
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"status": "assigned",
+			"cell": cell,
+			"node_id": nodeID,
+		})
+	})
+	
+	mux.HandleFunc("/dev/node/info", func(w http.ResponseWriter, r *http.Request) {
+		info := map[string]any{
+			"local_node_id": eng.GetLocalNodeID(),
+			"nodes": eng.ListNodes(),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(info)
 	})
 
 	srv := &http.Server{Addr: ":" + *port, Handler: mux}

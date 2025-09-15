@@ -15,14 +15,16 @@ import (
 )
 
 type Engine struct {
-	cfg       Config
-	mu        sync.RWMutex
-	cells     map[spatial.CellKey]*CellInstance
-	players   map[string]*Player // id -> player
-	bots      map[string]*botState
-	rng       *rand.Rand
-	stopCh    chan struct{}
-	stoppedCh chan struct{}
+	cfg          Config
+	mu           sync.RWMutex
+	cells        map[spatial.CellKey]*CellInstance
+	players      map[string]*Player // id -> player
+	bots         map[string]*botState
+	rng          *rand.Rand
+	stopCh       chan struct{}
+	stoppedCh    chan struct{}
+	nodeRegistry *NodeRegistry
+	crossNodeSvc CrossNodeHandoverService
 	// lifecycle guards
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -43,13 +45,14 @@ type Engine struct {
 
 func NewEngine(cfg Config) *Engine {
 	return &Engine{
-		cfg:       cfg,
-		cells:     make(map[spatial.CellKey]*CellInstance),
-		players:   make(map[string]*Player),
-		bots:      make(map[string]*botState),
-		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
-		stopCh:    make(chan struct{}),
-		stoppedCh: make(chan struct{}),
+		cfg:          cfg,
+		cells:        make(map[spatial.CellKey]*CellInstance),
+		players:      make(map[string]*Player),
+		bots:         make(map[string]*botState),
+		rng:          rand.New(rand.NewSource(time.Now().UnixNano())),
+		stopCh:       make(chan struct{}),
+		stoppedCh:    make(chan struct{}),
+		nodeRegistry: NewNodeRegistry(cfg.NodeID),
 	}
 }
 
@@ -443,4 +446,51 @@ func (e *Engine) MetricsSnapshot() Metrics {
 		avg = float64(ent) / float64(q)
 	}
 	return Metrics{Handovers: ho, AOIQueries: q, AOIEntitiesTotal: ent, AOIAvgEntities: avg}
+}
+
+// RegisterNode registers a remote node in the node registry
+func (e *Engine) RegisterNode(nodeInfo *NodeInfo) {
+	e.nodeRegistry.RegisterNode(nodeInfo)
+}
+
+// UnregisterNode removes a node from the registry
+func (e *Engine) UnregisterNode(nodeID string) {
+	e.nodeRegistry.UnregisterNode(nodeID)
+}
+
+// AssignCellToNode assigns ownership of a cell to a specific node
+func (e *Engine) AssignCellToNode(cell spatial.CellKey, nodeID string) {
+	e.nodeRegistry.AssignCell(cell, nodeID)
+}
+
+// GetCellOwner returns the node ID that owns the given cell
+func (e *Engine) GetCellOwner(cell spatial.CellKey) string {
+	return e.nodeRegistry.GetCellOwner(cell)
+}
+
+// IsLocalCell returns true if the cell is owned by the local node
+func (e *Engine) IsLocalCell(cell spatial.CellKey) bool {
+	return e.nodeRegistry.IsLocalCell(cell)
+}
+
+// GetNodeInfo returns information about a specific node
+func (e *Engine) GetNodeInfo(nodeID string) (*NodeInfo, bool) {
+	return e.nodeRegistry.GetNodeInfo(nodeID)
+}
+
+// GetLocalNodeID returns the local node's ID
+func (e *Engine) GetLocalNodeID() string {
+	return e.nodeRegistry.GetLocalNodeID()
+}
+
+// ListNodes returns all registered nodes
+func (e *Engine) ListNodes() map[string]*NodeInfo {
+	return e.nodeRegistry.ListNodes()
+}
+
+// SetCrossNodeHandoverService sets the cross-node handover service
+func (e *Engine) SetCrossNodeHandoverService(svc CrossNodeHandoverService) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.crossNodeSvc = svc
 }

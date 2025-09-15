@@ -31,13 +31,53 @@ func (e *Engine) checkAndHandoverLocked(p *Player) {
 		// This ensures accurate latency measurement from detection to client notification
 		p.HandoverAt = time.Now()
 		old := p.OwnedCell
-		e.moveEntityLocked(p, old, target)
-		p.PrevCell = p.OwnedCell // Remember the cell we're leaving
-		p.OwnedCell = target
-		// metrics: record handover (logical ownership change)
+
+		// Check if this is a cross-node handover
+		targetNodeID := e.nodeRegistry.GetCellOwner(target)
+		if targetNodeID != e.nodeRegistry.GetLocalNodeID() {
+			// This is a cross-node handover - initiate cross-node transfer
+			e.initiateCrossNodeHandoverLocked(p, targetNodeID, old, target)
+		} else {
+			// Local handover - use existing logic
+			e.moveEntityLocked(p, old, target)
+			p.PrevCell = p.OwnedCell // Remember the cell we're leaving
+			p.OwnedCell = target
+			// metrics: record handover (logical ownership change)
+			atomic.AddInt64(&e.met.handovers, 1)
+			metrics.IncHandovers()
+		}
+	}
+}
+
+// initiateCrossNodeHandoverLocked initiates a cross-node player transfer
+// e.mu must be held by caller
+func (e *Engine) initiateCrossNodeHandoverLocked(p *Player, targetNodeID string, fromCell, toCell spatial.CellKey) {
+	if e.crossNodeSvc == nil {
+		// No cross-node service configured - fall back to local handover
+		e.moveEntityLocked(p, fromCell, toCell)
+		p.PrevCell = p.OwnedCell
+		p.OwnedCell = toCell
 		atomic.AddInt64(&e.met.handovers, 1)
 		metrics.IncHandovers()
+		return
 	}
+
+	// Mark player as pending cross-node handover
+	p.CrossNodeHandover = &CrossNodeHandoverState{
+		TargetNode: targetNodeID,
+		FromCell:   fromCell,
+		ToCell:     toCell,
+		Status:     HandoverInProgress,
+		InitiatedAt: time.Now(),
+	}
+
+	// For now, continue the local handover to avoid state inconsistency
+	// The cross-node transfer will be handled asynchronously
+	e.moveEntityLocked(p, fromCell, toCell)
+	p.PrevCell = p.OwnedCell
+	p.OwnedCell = toCell
+	atomic.AddInt64(&e.met.handovers, 1)
+	metrics.IncHandovers()
 }
 
 // crossedBeyondHysteresis returns true if pos is sufficiently inside the target cell relative to the origin cell.
