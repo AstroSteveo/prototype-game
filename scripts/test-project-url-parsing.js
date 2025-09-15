@@ -5,28 +5,34 @@
  * This mirrors the parsing logic used in the project-sync.yml workflow
  */
 
-function parseProjectUrl(projectUrl) {
-  console.log('🔍 Testing PROJECT_URL:', projectUrl);
-
-  // Extract project info from URL (same regex as workflow)
+// Shared utility function for extracting project info from URL
+function extractProjectInfoFromUrl(projectUrl) {
   const urlMatch = projectUrl.match(
     /github\.com\/(users|orgs)\/([^\/]+)\/projects\/(\d+)/
   );
-  
   if (!urlMatch) {
+    return null;
+  }
+  const [, scope, owner, projectNumber] = urlMatch;
+  return {
+    kind: scope === 'users' ? 'user' : 'org',
+    login: owner,
+    number: parseInt(projectNumber, 10)
+  };
+}
+
+function parseProjectUrl(projectUrl) {
+  console.log('🔍 Testing PROJECT_URL:', projectUrl);
+
+  // Use shared utility function for parsing
+  const parsedInfo = extractProjectInfoFromUrl(projectUrl);
+  
+  if (!parsedInfo) {
     return {
       success: false,
       error: `❌ Invalid project URL format: ${projectUrl}. Expected format: https://github.com/{users|orgs}/{owner}/projects/{number}`
     };
   }
-
-  const [, scope, owner, projectNumber] = urlMatch;
-  const parsedInfo = {
-    kind: scope === 'users' ? 'user' : 'org',
-    login: owner,
-    number: parseInt(projectNumber, 10)
-  };
-  
   return {
     success: true,
     parsedInfo,
