@@ -31,7 +31,7 @@
 12. [Appendices](#appendices)
 
 ## Executive Summary
-Large language models have matured into versatile reasoning engines capable of accelerating knowledge work, customer support, and developer productivity. Their strengths—language understanding, summarization, and structured output generation—map well to several pain points in our product roadmap, particularly (a) contextual assistance for power users, (b) accelerated content authoring, and (c) automated insight generation over proprietary data. However, LLMs remain probabilistic. They synthesize responses from statistical correlations rather than verified truths, which makes hallucinations, bias, and data privacy the critical risks to manage. This whitepaper:
+Large language models have matured rapidly and now serve as versatile reasoning engines. They can accelerate knowledge work, improve customer support, and boost developer productivity. LLMs excel at language understanding, summarization, and structured output generation. These strengths address several pain points in our product roadmap, including (a) contextual assistance for power users, (b) accelerated content authoring, and (c) automated insight generation over proprietary data. However, LLMs remain probabilistic. They synthesize responses from statistical correlations rather than verified truths, which makes hallucinations, bias, and data privacy the critical risks to manage. This whitepaper:
 
 - Explains how LLMs represent information via tokenization, context windows, and attention.
 - Documents the modern serving stack: decoding strategies, key-value caching, streaming APIs, and observability.
