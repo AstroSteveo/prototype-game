@@ -21,7 +21,8 @@ jobs:
   sync-to-project:
     if: >-
       github.actor != 'dependabot[bot]' &&
-      vars.PROJECT_URL
+      vars.PROJECT_URL != '' &&
+      secrets.PROJECTS_TOKEN != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,64 +49,84 @@ jobs:
           github-token: ${{ secrets.PROJECTS_TOKEN }}
           script: |
             const projectUrl = '${{ vars.PROJECT_URL }}';
+            console.log('🔍 Starting project sync with PROJECT_URL:', projectUrl);
 
             // Extract project info from URL
             const urlMatch = projectUrl.match(
-              /github\.com\/(?:users|orgs)\/([^\/]+)\/projects\/(\d+)/
+              /github\.com\/(users|orgs)\/([^\/]+)\/projects\/(\d+)/
             );
             if (!urlMatch) {
-              core.setFailed('Invalid project URL format: ' + projectUrl);
+              core.setFailed(`❌ Invalid project URL format: ${projectUrl}. Expected format: https://github.com/{users|orgs}/{owner}/projects/{number}`);
               return;
             }
 
-            const [, owner, projectNumber] = urlMatch;
+            const [, scope, owner, projectNumber] = urlMatch;
+            const parsedInfo = {
+              kind: scope === 'users' ? 'user' : 'org',
+              login: owner,
+              number: parseInt(projectNumber, 10)
+            };
+            
+            console.log(`✅ Parsed PROJECT_URL: kind=${parsedInfo.kind} login=${parsedInfo.login} number=${parsedInfo.number}`);
 
-            // Get project info (for user or org)
-            const projectQuery = `
-              query($owner: String!, $number: Int!) {
-                user(login: $owner) {
-                  projectV2(number: $number) {
-                    id
-                    fields(first: 50) {
-                      nodes {
-                        ... on ProjectV2Field { id name }
-                        ... on ProjectV2SingleSelectField { id name options { id name } }
-                        ... on ProjectV2IterationField {
-                          id
-                          name
-                          configuration { iterations { id title startDate duration } }
+            // Helper function to query project by scope
+            async function queryProject(isUser) {
+              const queryType = isUser ? 'user' : 'organization';
+              const projectQuery = `
+                query($owner: String!, $number: Int!) {
+                  ${queryType}(login: $owner) {
+                    projectV2(number: $number) {
+                      id
+                      fields(first: 50) {
+                        nodes {
+                          ... on ProjectV2Field { id name }
+                          ... on ProjectV2SingleSelectField { id name options { id name } }
+                          ... on ProjectV2IterationField {
+                            id
+                            name
+                            configuration { iterations { id title startDate duration } }
+                          }
                         }
                       }
                     }
                   }
                 }
-                organization(login: $owner) {
-                  projectV2(number: $number) {
-                    id
-                    fields(first: 50) {
-                      nodes {
-                        ... on ProjectV2Field { id name }
-                        ... on ProjectV2SingleSelectField { id name options { id name } }
-                        ... on ProjectV2IterationField {
-                          id
-                          name
-                          configuration { iterations { id title startDate duration } }
-                        }
-                      }
-                    }
-                  }
-                }
+              `;
+
+              console.log(`🔍 Querying ${queryType} project for ${owner}...`);
+              try {
+                const result = await github.graphql(projectQuery, {
+                  owner: owner,
+                  number: parsedInfo.number
+                });
+                return result[queryType]?.projectV2;
+              } catch (error) {
+                console.log(`❌ ${queryType} query failed:`, error.message);
+                return null;
               }
-            `;
+            }
 
-            const projectResult = await github.graphql(projectQuery, {
-              owner: owner,
-              number: parseInt(projectNumber)
-            });
-
-            const project = projectResult.user?.projectV2 || projectResult.organization?.projectV2;
+            // Try primary scope first, then fallback to opposite scope
+            let project = null;
+            const primaryIsUser = parsedInfo.kind === 'user';
+            
+            console.log(`🎯 Trying primary scope: ${parsedInfo.kind}`);
+            project = await queryProject(primaryIsUser);
+            
             if (!project) {
-              core.setFailed('Project not found for ' + projectUrl);
+              const fallbackScope = primaryIsUser ? 'org' : 'user';
+              console.log(`🔄 Primary scope failed, trying fallback scope: ${fallbackScope}`);
+              project = await queryProject(!primaryIsUser);
+              
+              if (project) {
+                console.log(`✅ Found project using fallback scope: ${fallbackScope}`);
+              }
+            } else {
+              console.log(`✅ Found project using primary scope: ${parsedInfo.kind}`);
+            }
+
+            if (!project) {
+              core.setFailed(`❌ Project not found for ${projectUrl}. Verify the URL is correct and the token has access to the project.`);
               return;
             }
 
