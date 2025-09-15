@@ -88,3 +88,21 @@ jobs:
       - name: Tests (ws, race)
         if: matrix.target == 'ws' && matrix.race == true
         run: make test-ws-race
+
+  actionlint:
+    name: Lint GitHub Actions workflows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: actionlint
+        uses: rhysd/actionlint@v1
+
+  validate-automation:
+    name: Validate project automation setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run validation script
+        run: bash scripts/validate-automation.sh
