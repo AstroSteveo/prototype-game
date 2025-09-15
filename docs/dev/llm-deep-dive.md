@@ -73,7 +73,7 @@ This whitepaper:
 
 ### Training Pipeline
 1. **Data acquisition and curation.** Large corpora of text, code, and domain-specific documents are deduplicated, filtered, and tokenized. Quality filtering (toxicity removal, dedup) affects factuality downstream.
-2. **Pre-training.** Models learn to predict the next token across trillions of tokens. Optimizers (AdamW, Lion), learning rate schedules, and distributed training (pipeline + tensor parallelism) determine efficiency.
+2. **Pre-training.** Models learn to predict the next token across trillions of tokens. Optimizers (AdamW, Lion—a newer optimizer designed for faster convergence), learning rate schedules, and distributed training (pipeline + tensor parallelism) determine efficiency.
 3. **Alignment and fine-tuning.** Techniques include supervised fine-tuning (SFT) on curated instructions, reinforcement learning from human feedback (RLHF), direct preference optimization (DPO), and constitutional AI. Alignment shapes tone and policy adherence.
 4. **Continual learning.** Models can be periodically refreshed with new data or adapters (LoRA, QLoRA) to incorporate domain updates without full retraining.
 
