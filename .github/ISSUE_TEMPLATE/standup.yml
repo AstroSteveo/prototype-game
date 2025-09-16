@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this to keep the AI team in sync. Optional pre‑read: run `scripts/agents/prepare-context.sh > docs/process/sessions/_latest_context.md`.
+        Use this to keep the AI team in sync. Optional pre-read: run `scripts/agents/prepare-context.sh > docs/process/sessions/_latest_context.md`.
 
   - type: textarea
     id: product-owner
