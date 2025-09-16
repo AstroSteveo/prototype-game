@@ -21,7 +21,7 @@ parse_url() {
   # Extract path parts
   local path=${url#*://*/}
   local parts
-  IFS='/' read -r -a parts <<<"${url#https://github.com/}"
+  IFS='/' read -r -a parts <<<"${url#*://github.com/}"
   if [[ ${#parts[@]} -ge 4 && ${parts[2]} == "projects" ]]; then
     echo "${parts[0]}" "${parts[1]}" "${parts[3]}"
     return 0
