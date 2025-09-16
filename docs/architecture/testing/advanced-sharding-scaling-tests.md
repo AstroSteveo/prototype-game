@@ -1,6 +1,6 @@
 # Advanced Sharding and Scaling Test Suite
 
-## Issue Summary
+## Overview
 
 Develop a comprehensive test suite that focuses on advanced sharding and scaling capabilities of the server, including cross-node sharding (Phase B), load testing, and distributed system resilience scenarios.
 
@@ -168,12 +168,12 @@ func TestResourceThrottlingUnderStress(t *testing.T)
 - Create rollback procedures for distributed deployments
 - Design tests to be deterministic and reproducible
 
-## Related Issues/ADRs
+## Related References
 
-- **TDD Section**: "Handover (Phase B: Cross‑Node, Post‑MVP)" (lines 156-159)
-- **Performance Budgets**: "< 500ms cross‑node" target (line 362)
-- **Existing ADR**: `docs/process/adr/0001-local-sharding.md`
-- **Relevant User Stories**: Need to identify multi-node user scenarios
+- **Technical Design Document**: See "Handover (Phase B: Cross-Node, Post-MVP)" and "Performance Budgets" sections.
+- **ADR 0001 – Local Sharding**: Baseline architecture decisions for sharding.
+- **Future ADRs**: Define cross-node communication, distributed cell assignment, and session state strategies before implementation.
+- **User Scenarios**: Capture multi-node player experience stories in the roadmap update log.
 
 ---
 
