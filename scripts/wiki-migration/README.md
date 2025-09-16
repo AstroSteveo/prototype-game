@@ -177,9 +177,9 @@ rm -rf wiki-content/
 
 For issues with these scripts or the migration process:
 1. Check the backup files for safe restoration
-2. Review the migration agent documentation in `docs/agents/`
+2. Review the current documentation governance in `docs/.llm/AGENTS.md`
 3. File an issue in the repository with details about the problem
 
 ---
 
-**Migration Agent**: These scripts implement the automation workflows designed by the wiki migration agent documented in `docs/agents/wiki-migration-agent.md`.
+**Maintenance Note**: These scripts were authored for the previous wiki migration effort. Consult `docs/.llm/AGENTS.md` and the roadmap handbook for up-to-date documentation policies before running them.

@@ -5,12 +5,12 @@ When a new feature or scope adjustment is discovered, follow this lightweight pr
 ## 1. Discovery
 - Capture the idea as a GitHub issue using the appropriate template (`Story` or `Task`).
 - Provide a short problem statement and acceptance criteria.
-- Add the issue to the [Game Roadmap project](https://github.com/users/AstroSteveo/projects/2).
+- Add the issue to the roadmap project board configured via `PROJECT_URL` (see [`operations/project-board-automation.md`](../operations/project-board-automation.md)).
 
 ## 2. Design
 - For minor tweaks, reference existing design docs:
-  - [Game Design Document](../design/GDD.md)
-  - [Technical Design Document](../design/TDD.md)
+  - [Game Design Document](../product/vision/game-design-document.md)
+  - [Technical Design Document](../architecture/technical-design-document.md)
 - For **major architectural changes**, create an Architecture Decision Record (ADR) using [`docs/process/adr/TEMPLATE.md`](adr/TEMPLATE.md).
 - Update relevant design docs with new details or rationale.
 
@@ -19,7 +19,7 @@ When a new feature or scope adjustment is discovered, follow this lightweight pr
 - Link related issues to track progress.
 
 ## 4. Implementation
-- Follow the steps in [`docs/dev/DEV.md`](../dev/DEV.md) (fmt, vet, tests).
+- Follow the steps in [`docs/development/developer-guide.md`](../development/developer-guide.md) (fmt, vet, tests).
 - Reference the issue ID in commit messages and PR descriptions.
 
 ## 5. Release & Follow-up
@@ -29,7 +29,7 @@ When a new feature or scope adjustment is discovered, follow this lightweight pr
 
 ## Related Resources
 - Issue templates: [`.github/ISSUE_TEMPLATE`](../../.github/ISSUE_TEMPLATE)
-- Project board: [Game Roadmap](https://github.com/users/AstroSteveo/projects/2)
-- Developer guide: [`docs/dev/DEV.md`](../dev/DEV.md)
+- Project board: see [`operations/project-board-automation.md`](../operations/project-board-automation.md)
+- Developer guide: [`docs/development/developer-guide.md`](../development/developer-guide.md)
 - ADRs: [`docs/process/adr/`](adr/)
 
