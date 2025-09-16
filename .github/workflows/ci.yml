@@ -96,7 +96,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: actionlint
-        uses: rhysd/actionlint@v1.7.1
+        uses: rhysd/actionlint@v1.7.0
 
   validate-automation:
     name: Validate project automation setup
