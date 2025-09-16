@@ -161,8 +161,31 @@ jobs:
             const itemQuery = `
               query($contentId: ID!, $projectId: ID!) {
                 node(id: $contentId) {
-                  ... on Issue { projectItems(first: 50, includeArchived: true) { nodes { id project { id } } } }
-                  ... on PullRequest { projectItems(first: 50, includeArchived: true) { nodes { id project { id } } } }
+                  ... on Issue { 
+                    projectItems(first: 50, includeArchived: true) { 
+                      nodes { 
+                        id 
+                        project { id } 
+                        ... on ProjectV2Item {
+                          project { id }
+                        }
+                      } 
+                    } 
+                  }
+                  ... on PullRequest { 
+                    projectItems(first: 50, includeArchived: true) { 
+                      nodes { 
+                        id 
+                        project { id }
+                        ... on ProjectV2Item {
+                          project { id }
+                        }
+                      } 
+                    } 
+                  }
+                }
+                projectV2(id: $projectId) {
+                  id
                 }
                 projectV2(id: $projectId) {
                   id
