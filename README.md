@@ -23,9 +23,11 @@ gantt
 ```
 
 ### Quick Links
-- 📊 **[Detailed Roadmap](docs/roadmap/ROADMAP.md)** — Comprehensive project visualization with Gantt charts, work allocation, status updates, and risk assessment
+- 📊 **[Detailed Roadmap](docs/roadmap/ROADMAP.md)** — Updated Sept 2025 with "Full MVP Loop and Persistence" timeline
+- 🛠️ **[Implementation Guide](docs/dev/ROADMAP_IMPLEMENTATION.md)** — Technical requirements for M5-M7 features
 - 🎯 **[GitHub Project Board](https://github.com/users/AstroSteveo/projects/2)** — Live project tracking
 - 📋 **[Roadmap Planning Guide](docs/process/ROADMAP_MEETINGS.md)** — How to participate in roadmap discussions
+- 📝 **[Issue #109](https://github.com/AstroSteveo/prototype-game/issues/109)** — Latest roadmap planning meeting outcomes
 
 ### How to Use the Roadmap
 **For Contributors:**
