@@ -187,6 +187,9 @@ jobs:
                 projectV2(id: $projectId) {
                   id
                 }
+                projectV2(id: $projectId) {
+                  id
+                }
               }
             `;
 
