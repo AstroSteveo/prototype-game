@@ -30,6 +30,10 @@ parse_url() {
 }
 
 read scope login number < <(parse_url "$PROJECT_URL") || { echo "Invalid PROJECT_URL: $PROJECT_URL" >&2; exit 1; }
+if [[ -z "$scope" || -z "$login" || -z "$number" ]]; then
+  echo "Invalid PROJECT_URL: $PROJECT_URL (parsed values are empty)" >&2
+  exit 1
+fi
 
 read -r -d '' Q_USER <<'EOF'
 query($login:String!, $number:Int!){
