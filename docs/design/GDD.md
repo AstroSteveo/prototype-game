@@ -37,7 +37,7 @@
 
 ## Content Scope (MVP)
 - World: a simple test zone (flat plane or blocky test map) with coordinates in meters.
-- Entities: players, ambient bots (wanderers), static POIs (spawn stones, markers), and lootable nodes/crates.
+- Entities: players, ambient bots (wanderers), static POIs (spawn stones, markers), and lootable nodes/crates (interactable objects that can be looted by players; once looted, they become inactive and respawn after a fixed interval or when the cell is empty; interaction is proximity-based with a short pickup animation and clear feedback).
 - Interactions: emotes (wave), proximity ping, item pickup, targeted ability use with clear cast feedback.
 - Progression: per‑skill experience, gated abilities, and spendable skill points to slot new stanzas.[^6][^7]
 - Inventory & Equipment: backpack with capacity (weight + bulk), quick access belt, hand slots, and contextual equip cooldown.[^1][^2]
