@@ -1,0 +1,42 @@
+name: "Weekly Planning"
+description: Select stories for the next iteration and ensure readiness
+title: "planning: Week of YYYY-MM-DD"
+labels: ["planning", "process"]
+body:
+  - type: markdown
+    attributes:
+      value: Use with `docs/process/sessions/PLANNING.md`.
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope & Milestone Goals
+      placeholder: High‑level goals for this iteration.
+    validations:
+      required: true
+
+  - type: textarea
+    id: stories
+    attributes:
+      label: Selected Stories (DoR confirmed)
+      placeholder: |
+        - US‑###: title — acceptance, risks, estimates
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies & Risks
+      placeholder: External services, sequencing, blockers.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: done
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Stories broken into tasks with owners
+        - label: Risks captured with mitigation
+        - label: ADRs scheduled where needed
