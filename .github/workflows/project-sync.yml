@@ -164,6 +164,9 @@ jobs:
                   ... on Issue { projectItems(first: 50, includeArchived: true) { nodes { id project { id } } } }
                   ... on PullRequest { projectItems(first: 50, includeArchived: true) { nodes { id project { id } } } }
                 }
+                projectV2(id: $projectId) {
+                  id
+                }
               }
             `;
 
