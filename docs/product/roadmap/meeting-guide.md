@@ -49,7 +49,7 @@ Schedule a roadmap session when:
 ## Tips
 1. Time-box each agenda item; capture parking-lot topics in the issue for offline follow-up.
 2. Require data to back status shifts—attach logs, dashboards, or test results where possible.
-3. Encourage automation participation by flagging tasks in `.llm/AGENTS.md` that need agent support.
+3. Encourage automation participation by flagging tasks in [../../.llm/AGENTS.md](../../.llm/AGENTS.md) that need agent support.
 4. Close with explicit next steps so no decision remains ambiguous.
 
 Revisit this guide whenever facilitation duties rotate or process adjustments are needed. Keeping the ritual consistent ensures the roadmap stays truthful and actionable.
