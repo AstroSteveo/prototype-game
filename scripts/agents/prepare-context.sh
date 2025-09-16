@@ -48,7 +48,12 @@ if [[ -d docs/process/adr ]]; then
   for f in docs/process/adr/*.md; do
     [ -e "$f" ] || continue
     title=$(head -n1 "$f" | sed 's/^# //')
-    status=$(rg -n "^-[[:space:]]*\*\*Status\*\*:" -N "$f" | sed 's/.*Status**: *//')
+    # Expected ADR status line format:
+    #   - **Status**: Proposed
+    #   - Status: Accepted
+    #   - *Status*: Deprecated
+    # The regex below matches lines starting with a bullet, optional bold/italic, and "Status", followed by a colon.
+    status=$(rg -n "^-.*[Ss]tatus.*: *" -N "$f" | sed -E 's/.*[Ss]tatus\*\*?:?\*?:? *:? *//')
     echo "- ${title} — ${status:-unknown} (${f})"
   done
 fi
