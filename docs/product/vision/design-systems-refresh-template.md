@@ -18,6 +18,6 @@ _Describe the design areas being refreshed and the player value the update unloc
 
 ## Notes & Follow-ups
 - Call out dependencies (client work, infrastructure, balancing) and create issues for each owner.
-- Ensure `.llm/AGENTS.md` has any new governance or workflow expectations that emerge from the design.
+- Ensure [`../../.llm/AGENTS.md`](../../.llm/AGENTS.md) has any new governance or workflow expectations that emerge from the design.
 
 Duplicate this template when opening issues or tasks so design work stays consistent and traceable.
