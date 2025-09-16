@@ -33,7 +33,7 @@ echo "## Make Targets (help)"
 if grep -q "^help:" Makefile 2>/dev/null; then
   make help || true
 else
-  rg -n "^[a-zA-Z0-9_.-]+:\\s*" Makefile 2>/dev/null | sed 's/:.*//' | sort -u || true
+  grep '^[a-zA-Z0-9_.-]*:' Makefile 2>/dev/null | cut -d: -f1 | sort -u || true
 fi
 echo
 
