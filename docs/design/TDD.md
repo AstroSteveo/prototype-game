@@ -64,6 +64,77 @@ function queryAOI(player):
   return filter(candidates, dist(e.pos, player.pos) <= AOI_RADIUS)
 ```
 
+## Inventory, Equipment, and Items
+- Item templates are defined authoritatively with `weight`, `bulk`, `damage_type`, `slot_mask`, and optional `skill_req` metadata.[^1][^2][^3][^5]
+- Player state persists `bag_capacity` (weight + bulk), compartment counts (backpack, belt, craft bag), and an `equipment` map keyed by slot id.
+- Equip actions enforce cooldown locks so recently swapped items cannot be used for a short period.[^1]
+
+### Item Template Schema
+| Field | Type | Notes |
+| --- | --- | --- |
+| `template_id` | UUID | Primary key referenced by instances |
+| `display_name` | text | Localized name for UI |
+| `slot_mask` | bitset | Legal equipment slots (e.g., main_hand, off_hand, chest) |
+| `weight` | numeric | Applies to encumbrance totals; overage slows movement before hard cap.[^2] |
+| `bulk` | integer | Inventory slot usage; cannot exceed compartment limit.[^2] |
+| `damage_type` | enum | `slash`, `pierce`, `blunt`, or `elemental` for resist calculations.[^5] |
+| `skill_req` | jsonb | Minimum skill levels per discipline required to equip/use.[^3] |
+| `stanza_hooks` | jsonb | Optional modifiers to stanza costs/effects when slotted.[^6] |
+
+### Inventory Operations
+- Bag compartments (`inventory_items`) track `player_id`, `template_id`, `instance_id`, `quantity`, and durability.
+- Equip slots (`equipment_slots`) store `player_id`, `slot_id`, `instance_id`, and `cooldown_until` timestamp.[^1]
+- Encumbrance is recomputed on item add/remove; crossing thresholds triggers movement penalties and server warnings.[^2]
+- Tooltips fetch `skill_req` data so UI can gray out unusable items until prerequisites are met.[^3]
+
+### Equip Flow (Server)
+```go
+func EquipItem(p *Player, item ItemInstance, slot SlotID) error {
+    if !item.Template.Allows(slot) {
+        return ErrIllegalSlot
+    }
+    if !p.MeetsSkillReq(item.Template.SkillReq) {
+        return ErrSkillGate
+    }
+    if p.Equipment[slot].CooldownActive(now()) {
+        return ErrEquipLocked
+    }
+    p.Equipment[slot] = EquippedItem{Instance: item, CooldownUntil: now().Add(equipLock)}
+    p.Inventory.Remove(item.InstanceID)
+    p.RecomputeStats()
+    enqueueEvent(p, InventoryUpdate())
+    enqueueEvent(p, EquipmentUpdate(slot))
+    return nil
+}
+```
+
+### Damage Types and Mitigation
+- Incoming hits resolve against the defender’s equipped shield/armor mitigation profile (max vs. slash/pierce/blunt) with clamps applied per template.[^5]
+- Stanza effects can inject additional damage riders or resistance buffs that are processed in the combat resolver.[^6]
+
+## Targeting System
+- Each connection tracks `current_target` and `target_history` with timestamps for audit.
+- Server validates line‑of‑sight and AOI membership before accepting a target change; rejected targets emit a `target_error` event.
+- Target metadata exposed to the client includes name, title, vitals, aggression flag, and region difficulty color band.[^4]
+
+### Target Selection Flow
+```go
+func SetTarget(p *Player, target EntityID) {
+    if target == p.CurrentTarget {
+        return
+    }
+    if !IsVisible(p, target) {
+        send(p.Conn, TargetError{"not_visible"})
+        return
+    }
+    p.CurrentTarget = target
+    send(p.Conn, TargetUpdate{ID: target, Snapshot: buildTargetSnapshot(target)})
+}
+```
+
+- Difficulty color is computed from target level vs. regional band thresholds so the HUD mirrors the reference color table.[^4]
+- When a target despawns or leaves AOI, the server clears `current_target` and emits a `target_clear` message.
+
 ## Handover (Phase A: Local)
 1. Detect boundary crossing when player center moves into a new cell.
 2. Serialize player state (id, pos/vel, orientation, emote state, simple stats).
@@ -90,11 +161,18 @@ if cellOf(player.pos) != player.ownedCell:
 ## Network Protocol (MVP, WebSocket JSON)
 - Client→Server
   - `hello { token }`
-  - `input { seq, dt, intent: { move: { x,z }, look: { yaw }, emote? } }`
+  - `input { seq, dt, intent: { move: { x,z }, look: { yaw }, emote?, hotbar? } }`
   - `ack { last_seq }`
+  - `target_select { entity_id }`
+  - `ability_use { stanza_id, target_id?, mode }`
+  - `inventory_move { instance_id, from, to }`
 - Server→Client
-  - `join_ack { player_id, pos, cell, config }`
-  - `state { tick, entities: [ { id, type, pos, vel, yaw, name? } ], removals: [id] }`
+  - `join_ack { player_id, pos, cell, config, inventory, equipment, skills }`
+  - `state { tick, entities: [ { id, type, pos, vel, yaw, name?, level_band? } ], removals: [id] }`
+  - `inventory_update { add: [...], remove: [...], encumbrance }`
+  - `equipment_update { slot, item?, stats }`
+  - `target_update { id, name, title, vitals, difficulty_color }`
+  - `skill_progress { skill_id, xp, rank, unlocked }`
   - `handover { from_cell, to_cell }`
   - `telemetry { rtt, tick_rate }`
   - `error { code, message }`
@@ -138,12 +216,43 @@ loop at 20 Hz:
   maintainBotDensity()
 ```
 
+## Skill Progression & XP Pipeline
+- Each validated action produces an `XPEvent{skill_id, amount, source}` that feeds a per‑player queue.[^7]
+- The queue batches events by skill and applies rested/bonus modifiers before persisting to `skill_line` rows.
+- Rank‑up detection emits `skill_progress` messages and unlock notifications for newly available stanzas.[^6]
+- Skill points are banked per discipline and surface in the UI for ability purchases or loadout swaps.[^6][^7]
+
+### XP Application Pseudocode
+```go
+func ApplyXP(p *Player, events []XPEvent) {
+    grouped := aggregateBySkill(events)
+    for skillID, amount := range grouped {
+        line := p.Skills[skillID]
+        line.XP += amount
+        for line.XP >= xpForNextRank(line.Rank) {
+            line.XP -= xpForNextRank(line.Rank)
+            line.Rank++
+            unlock := discoverNewStanzas(line.Rank)
+            line.UnlockedStanzas = append(line.UnlockedStanzas, unlock...)
+            p.SkillPoints.Grant(skillID, rewardForRank(line.Rank))
+            enqueueEvent(p, SkillProgress(line, unlock))
+        }
+        persistSkillLine(p.ID, line)
+    }
+}
+```
+
 ## Data Model (MVP)
-- Player: `id, name, last_pos, last_cell, last_seen, simple_stat`.
+- Player: `id, name, last_pos, last_cell, last_seen, encumbrance_wt, encumbrance_bulk, skill_points(jsonb), current_target`.[^1][^2][^4][^7]
 - Session: `player_id, conn_id, cell, last_seq, last_tick` (cached).
-- Entity: `id, kind(player|bot), pos(x,z), vel(x,z), yaw, name?`.
+- Inventory item: `instance_id, player_id, template_id, quantity, durability, location(compartment), created_at`.[^2]
+- Equipment slot: `player_id, slot_id, instance_id, cooldown_until`.[^1]
+- Item template cache: `template_id, weight, bulk, slot_mask, damage_type, skill_req, stanza_hooks`.[^2][^3][^5][^6]
+- Skill line: `player_id, skill_id, rank, xp, unlocked_stanzas[]`.[^6][^7]
+- Ability stanza: `stanza_id, skill_id, cost, credit, modifiers`.[^6]
+- Entity: `id, kind(player|bot), pos(x,z), vel(x,z), yaw, name?, level_band`.[^4]
 - Cell: `key(cx,cz), instance_id, population, load`.
-- Bot template/config: `behavior, speed, density_target`.
+- Bot template/config: `behavior, speed, density_target, loot_table`.
 
 ### Configuration (Defaults)
 - `CELL_SIZE = 256` meters
@@ -212,8 +321,8 @@ M4: Bots & Density Targets
 - Criteria: maintain configured min entities in a cell (within ±20%).
 
 M5: Persistence
-- Outcome: position + simple stat saved; reconnect restores state.
-- Criteria: reconnect in < 2s; spawn within 1m of saved position.
+- Outcome: position, loadout (inventory + equipment), and per-skill progress saved; reconnect restores full state.
+- Criteria: reconnect in < 2s; spawn within 1m of saved position with inventory and equipment parity and no XP loss.
 
 Stretch: Cross‑Node Handover
 - Outcome: two sim processes with cell ownership split; boundary crossing re‑homes the player.
@@ -224,19 +333,29 @@ Stretch: Cross‑Node Handover
   - Cell math: `world→cell`, neighbor lookup.
   - AOI membership: inclusion/exclusion edge cases; 8‑neighbor coverage.
   - Handover decision: thresholds, oscillation guard (hysteresis).
+  - Inventory math: weight/bulk accumulation, slot legality, equip cooldown timers.[^1][^2]
+  - Skill gating: verifying required skill levels prevent unauthorized equips/ability use.[^3][^6]
+  - Target difficulty mapping: level band to color translation and serialization.[^4]
 - Integration
   - Multi‑entity AOI streaming: add/remove sets stable over 1,000 ticks.
   - Local handover: position continuity, sequence number continuity.
   - Bot density: holds target under movement churn.
+  - Inventory/equipment persistence: reconnect reproduces state and encumbrance metrics.
+  - Skill progression pipeline: XP events apply correctly and unlock stanzas with notifications.[^6][^7]
+  - Ability execution: damage type modifiers interact with mitigation tables as expected.[^5][^6]
 - Soak/Perf (local tooling)
   - 200 simulated clients; CPU budget per tick; GC pauses.
   - Replication payload size budget (target < 30KB/s per client avg in MVP scene).
+  - Hotbar spam with item swaps to measure equip cooldown enforcement and inventory diff bandwidth.[^1]
 
 ### Additional Test Cases
 - AOI edges: entities exactly at `AOI_RADIUS` are consistently included/excluded (define inclusive policy).
 - Border straddling: player pacing along border does not thrash handover due to hysteresis.
 - Snapshot cadence: jitter under heavy load remains within ±20ms.
 - Disconnect/reconnect: session resumes without duplicate player entities.
+- Equip cooldown integrity: item swaps respect lockouts and prevent immediate ability use until timer expires.[^1]
+- Encumbrance boundaries: crossing thresholds emits warnings and clamps movement appropriately.[^2]
+- Skill respec edge cases: unlocking/removing stanzas does not orphan loadout bindings.[^6]
 
 ## Performance Budgets (MVP Targets)
 - Tick: 20 Hz; server tick < 25ms at 200 entities in AOI.
@@ -244,14 +363,16 @@ Stretch: Cross‑Node Handover
 - Bandwidth: < 30KB/s per client avg; spikes < 100KB/s.
 
 ## Observability & Telemetry
-- Metrics: `tick_time_ms`, `snapshot_bytes`, `entities_in_aoi`, `handover_latency_ms`, `bot_count`, `ws_connected`, `ws_dropped`.
-- Traces: handover span with child spans for serialize→apply→notify.
-- Logs: rate‑limited info on handover start/complete; warn on AOI build > 10ms.
+- Metrics: `tick_time_ms`, `snapshot_bytes`, `entities_in_aoi`, `handover_latency_ms`, `bot_count`, `ws_connected`, `ws_dropped`, `inventory_weight_pct`, `equip_cooldown_active`, `skill_xp_gain`, `target_switch_rate`.
+- Traces: handover span with child spans for serialize→apply→notify plus equip/XP pipelines.
+- Logs: rate‑limited info on handover start/complete; warn on AOI build > 10ms and on equip attempts blocked by skill/slot gates.[^1][^3]
 
 ## Security & Reliability (MVP)
 - Server authoritative simulation; reject impossible velocities.
 - Token‑based auth; WS heartbeat with kick on timeout.
-- Crash recovery: session table restores cell and last position.
+- Crash recovery: session table restores cell, loadout, and skill progress.
+- Equip and ability requests must pass server-side slot and skill gate validation before state mutation.[^1][^3]
+- Inventory diffs are signed with monotonically increasing counters to prevent replay or duplication exploits.
 
 ## Bot Behavior (MVP)
 - Wander: pick a random direction every 3–7 seconds, clamp speed, avoid leaving cell by turning along border.
@@ -278,7 +399,9 @@ function updateBot(bot, dt):
 ```
 
 ## Non‑Goals (MVP)
-- Inventory/economy, combat, persistence beyond simple stat and position, matchmaking/party, voice chat.
+- Player-to-player trading or auction houses (bag is personal only).
+- Advanced combat systems beyond modular stanzas (e.g., combo breakers, physics-based hit detection).
+- Matchmaking/party tools, voice chat, or large-scale guild management.
 
 ## Risks & Mitigations
 - Handover hitches: keep Phase A in‑process; defer cross‑node until stable.
@@ -305,4 +428,13 @@ function updateBot(bot, dt):
   - Developer commands or runbooks reflected in `docs/dev/DEV.md`.
 - Format and vet clean: `go fmt ./... && go vet ./...` with `go test ./...` green.
 - Security/safety considerations addressed (validate inputs, avoid panics, respect build tags).
+
+## References
+[^1]: Ryzom Core – “How to change the items in your hands” help page. https://github.com/ryzom/ryzomcore/blob/master/ryzom/client/data/gamedev/html/help/how_to_changeitemsinhand_en.html
+[^2]: Ryzom Core – Craft tool item info highlighting weight/bulk limits. https://github.com/ryzom/ryzomcore/blob/master/ryzom/client/data/gamedev/html/help/interf_info_item_craft_tool_en.html
+[^3]: Ryzom Core – Abilities and items guide noting skill requirements for equipment. https://github.com/ryzom/ryzomcore/blob/master/ryzom/client/data/gamedev/html/help/abilities_item_step4_en.html
+[^4]: Ryzom Core – Target interface documentation with level color coding. https://github.com/ryzom/ryzomcore/blob/master/ryzom/client/data/gamedev/html/help/interf_target_en.html
+[^5]: Ryzom Core – Shield item info describing damage type mitigation. https://github.com/ryzom/ryzomcore/blob/master/ryzom/client/data/gamedev/html/help/interf_info_item_shield_en.html
+[^6]: Ryzom Core – Stanza system overview for modular ability construction. https://github.com/ryzom/ryzomcore/blob/master/ryzom/client/data/gamedev/html/help/interf_info_sbrick_en.html
+[^7]: Ryzom Core – Server command definitions showing per-skill XP and skill points. https://github.com/ryzom/ryzomcore/blob/master/ryzom/server/data_shard/egs/client_commands_privileges_open.txt
 
