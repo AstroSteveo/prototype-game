@@ -1,9 +1,51 @@
 # prototype-game
 
-Design docs:
+A multiplayer game backend with seamless local instancing (server meshing), real-time WebSocket communication, and server-authoritative simulation. Built in Go with comprehensive testing and automated CI/CD.
+
+## 📈 Roadmap Visualization
+
+### Current Release Timeline
+```mermaid
+gantt
+    title Current Release - Key Milestones
+    dateFormat YYYY-MM-DD
+    axisFormat %W
+    
+    section M5: Persistence
+    Database Integration  :active, db, 2024-01-08, 14d
+    State Persistence    :persist, after db, 17d
+    M5 Complete         :milestone, m5-done, after persist, 0d
+    
+    section M6: Features
+    Combat Systems      :combat, after m5-done, 21d
+    Equipment          :equip, after combat, 14d
+    M6 Complete        :milestone, m6-done, after equip, 0d
+```
+
+### Quick Links
+- 📊 **[Detailed Roadmap](docs/roadmap/ROADMAP.md)** — Comprehensive project visualization with Gantt charts, work allocation, status updates, and risk assessment
+- 🎯 **[GitHub Project Board](https://github.com/users/AstroSteveo/projects/2)** — Live project tracking *(if available)*
+- 📋 **[Roadmap Planning Guide](docs/process/ROADMAP_MEETINGS.md)** — How to participate in roadmap discussions
+
+### How to Use the Roadmap
+**For Contributors:**
+1. Check [current milestone status](docs/roadmap/ROADMAP.md#-status-snapshot-by-area) to see what areas need work
+2. Review [milestone acceptance criteria](docs/design/TDD.md#mvp-milestones--acceptance-criteria) before starting work
+3. Follow the [developer guide](docs/dev/DEV.md) for build/test procedures
+
+**For Project Planning:**
+- Use the [roadmap meeting template](docs/process/sessions/ROADMAP.md) for quarterly planning
+- Reference [risk assessments](docs/roadmap/ROADMAP.md#️-risks-and-mitigations) for decision making
+- Track progress via the [status dashboard](docs/roadmap/ROADMAP.md#-status-snapshot-by-area)
+
+## 📚 Documentation
+
+### Design & Architecture
 - `docs/design/GDD.md` — Game Design Document (vision, player experience, scope)
 - `docs/design/TDD.md` — Technical Design Document (architecture, sharding plan, milestones)
-- GitHub Issues/Project board — Backlog and progress tracking
+- `docs/roadmap/ROADMAP.md` — Project roadmap with detailed visualizations
+
+### Development & Process
 - `docs/dev/DEV.md` — Developer Guide (build, run, tests, Makefile)
 - `docs/process/FEATURE_PROPOSAL.md` — Feature proposal workflow
 - `docs/process/adr/` — Architecture Decision Records
