@@ -86,9 +86,9 @@ pie title Work Allocation by Area
 | Feature Proposal Process | Change management | ✅ Current | [FEATURE_PROPOSAL.md](../process/FEATURE_PROPOSAL.md) |
 
 ### GitHub Project Integration
-- **Main Project Board**: [Game Roadmap Project](https://github.com/users/AstroSteveo/projects/2) *(if available)*
-- **Issue Templates**: Available for [roadmap planning](.github/ISSUE_TEMPLATE/roadmap.yml)
-- **Roadmap Meetings**: Follow [meeting guide](../process/ROADMAP_MEETINGS.md)
+- **Main Project Board**: [Game Roadmap Project](https://github.com/users/AstroSteveo/projects/2) <!-- Ensure this project board exists, or remove this link if not available. -->
+- **Issue Templates**: <!-- Ensure roadmap planning template exists at .github/ISSUE_TEMPLATE/roadmap.yml, or update/remove this link. -->
+- **Roadmap Meetings**: <!-- Ensure meeting guide exists at ../process/ROADMAP_MEETINGS.md, or update/remove this link. -->
 
 ## ⚠️ Risks and Mitigations
 
