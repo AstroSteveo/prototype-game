@@ -67,11 +67,18 @@ jobs:
           go version
           go env GOCACHE GOMODCACHE
 
-      - name: Format and Vet
+      - name: Format check (gofmt) and Vet
         if: matrix.target == 'unit'
+        working-directory: backend
         run: |
-          make fmt vet
-          git diff --exit-code
+          # Check formatting without mutating files - fails if any files need formatting
+          UNFORMATTED=$(gofmt -s -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "Unformatted files:" && echo "$UNFORMATTED"
+            exit 1
+          fi
+          # Run vet
+          go vet ./...
 
       - name: Tests (unit)
         if: matrix.target == 'unit' && matrix.race == false
