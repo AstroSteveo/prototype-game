@@ -48,7 +48,7 @@ Use this runbook to keep the repository’s branch list clean and to ensure `mai
 ## Governance Notes
 - Keep `main` protected; require PR reviews and status checks before merge.
 - Avoid resurrecting deleted branches; create fresh branches from `main` to maintain a clear history.
-- If automation relies on branch naming conventions, document them here and in `.llm/AGENTS.md` so agents follow the rules.
+- If automation relies on branch naming conventions, document them here and in `../.llm/AGENTS.md` so agents follow the rules.
 
 ## Follow-up
 - Update stakeholders on the cleanup results (e.g., number of branches removed, outstanding follow-ups).
