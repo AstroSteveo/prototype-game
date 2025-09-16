@@ -24,7 +24,7 @@ gantt
 
 ### Quick Links
 - 📊 **[Detailed Roadmap](docs/roadmap/ROADMAP.md)** — Comprehensive project visualization with Gantt charts, work allocation, status updates, and risk assessment
-- 🎯 **[GitHub Project Board](https://github.com/users/AstroSteveo/projects/2)** — Live project tracking *(if available)*
+- 🎯 **[GitHub Project Board](https://github.com/users/AstroSteveo/projects/2)** — Live project tracking
 - 📋 **[Roadmap Planning Guide](docs/process/ROADMAP_MEETINGS.md)** — How to participate in roadmap discussions
 
 ### How to Use the Roadmap
