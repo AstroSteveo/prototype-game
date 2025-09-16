@@ -26,13 +26,17 @@ The project uses GitHub Actions for continuous integration. The CI workflow:
 - **Triggers**: Runs on pushes and PRs to `main`, but skips docs-only changes
 - **Test Matrix**: Tests both unit tests and WebSocket integration tests, with and without race detection
 - **Make Targets**: CI uses Makefile targets for consistency:
-  - `make fmt vet` - Format and vet code
+  - `make fmt` - Format Go code with gofmt
+  - `make fmt-check` - Check if Go code is formatted (non-mutating, used in CI)
+  - `make vet` - Run go vet
   - `make test` - Run unit tests  
   - `make test-ws` - Run WebSocket integration tests
   - `make test-race` - Run unit tests with race detection
   - `make test-ws-race` - Run WebSocket tests with race detection
 
 **Before committing**, always run: `make fmt vet test test-ws`
+
+**CI Format Checking**: The CI uses a non-mutating format check that lists unformatted files without modifying them. If you see CI failures related to formatting, run `make fmt` locally to fix formatting issues.
 
 ## Reconnect / Resume (WS)
 - On successful join, the server includes a `resume` token in `join_ack`.
@@ -151,4 +155,4 @@ From the repo root:
 - [ ] Integration tests added/updated if applicable (`make test-ws`)
 - [ ] GitHub issue updated with status and tests/evidence
 - [ ] Developer docs updated if commands changed (`docs/dev/DEV.md`)
-- [ ] `go fmt`, `go vet`, and all tests pass
+- [ ] Code formatted (`make fmt`), vet clean (`make vet`), and all tests pass
