@@ -10,6 +10,11 @@ backend/bin/
 backend/logs/
 backend/.pids/
 
+# Backups & local logs
+*.backup
+*.pre-wiki-backup
+err.log
+
 # Artifacts from the Coder AI agent
 .code/
 

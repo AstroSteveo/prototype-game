@@ -1,0 +1,73 @@
+name: "Standup"
+description: Daily async standup for AI agents
+title: "standup: YYYY-MM-DD"
+labels: ["standup", "process"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to keep the AI team in sync. Optional pre-read: run `scripts/agents/prepare-context.sh > docs/process/sessions/_latest_context.md`.
+
+  - type: textarea
+    id: product-owner
+    attributes:
+      label: Product Owner — Yesterday / Today / Blockers
+      placeholder: |
+        - Yesterday:
+        - Today:
+        - Blockers:
+    validations:
+      required: false
+
+  - type: textarea
+    id: architect
+    attributes:
+      label: Lead Architect — Yesterday / Today / Blockers
+      placeholder: |
+        - Yesterday:
+        - Today:
+        - Blockers:
+    validations:
+      required: false
+
+  - type: textarea
+    id: gameplay
+    attributes:
+      label: Gameplay/Sim — Yesterday / Today / Blockers
+      placeholder: |
+        - Yesterday:
+        - Today:
+        - Blockers:
+    validations:
+      required: false
+
+  - type: textarea
+    id: networking
+    attributes:
+      label: Networking/Gateway — Yesterday / Today / Blockers
+      placeholder: |
+        - Yesterday:
+        - Today:
+        - Blockers:
+    validations:
+      required: false
+
+  - type: textarea
+    id: sreqa
+    attributes:
+      label: SRE/QA — Yesterday / Today / Blockers
+      placeholder: |
+        - Yesterday:
+        - Today:
+        - Blockers:
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: done
+    attributes:
+      label: Definition of Done
+      options:
+        - label: All roles posted updates
+        - label: Blockers assigned with next steps
+        - label: Links to issues/PRs added where relevant
