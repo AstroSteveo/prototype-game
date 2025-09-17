@@ -11,7 +11,7 @@ This directory captures the enduring knowledge for the prototype game project. T
 - `architecture/technical-design-document.md` — system-level plan for the simulation stack.
 - `architecture/testing/` — deep dives for advanced load and sharding validation.
 - `architecture/health/` — reusable templates for technical health reviews.
-- `process/adr/` — architectural decision records with the canonical template alongside recorded ADRs.
+- `process/adr/` — architectural decision records with the canonical template, peer review guidelines, and recorded ADRs.
 
 ## Development Workflow
 - `development/` — developer guide, server feature coverage map, and other day-to-day engineering references.
