@@ -91,7 +91,7 @@ Early prototypes needed a simple way to scale the world and limit broadcast scop
 Implement local sharding by partitioning the world into fixed-size grid cells managed within a single simulation process.
 
 **Key Components:**
-1. **Spatial Partitioning**: 50m × 50m cells (configurable via CELL_SIZE)
+1. **Spatial Partitioning**: 256m × 256m cells (configurable via CELL_SIZE; current default: 256m)
 2. **Area of Interest**: 3×3 cell grid centered on player's current cell
 3. **Local Handovers**: In-memory transfers when players cross cell boundaries
 4. **State Management**: Each cell maintains independent entity lists and state
