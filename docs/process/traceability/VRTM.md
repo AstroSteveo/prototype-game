@@ -231,10 +231,14 @@ The VRTM ensures that:
 - Identify new gaps from evolving requirements
 
 ### Release Planning Integration
-- Use VRTM to guide feature prioritization
-- Ensure milestone dependencies support vision pillars
+- **Before each release planning session**: Review VRTM for current status
+- Use VRTM to guide feature prioritization based on vision alignment
+- Ensure milestone dependencies support design pillars
 - Validate technical decisions against user story requirements
-- Update roadmap based on gap analysis
+- **After each release planning session**: Update VRTM with new roadmap decisions
+- Update milestone status and timelines based on planning outcomes
+- Reassess risk levels for upcoming milestones
+- Document any new gaps or dependencies identified
 
 ### Continuous Maintenance
 - Update status after milestone completion
