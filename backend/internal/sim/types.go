@@ -29,6 +29,11 @@ type Player struct {
 	HandoverAt time.Time
 	ConnID     string // placeholder for connection id
 	LastSeq    int
+
+	// Inventory and equipment systems
+	Inventory *Inventory     `json:"inventory"`
+	Equipment *Equipment     `json:"equipment"`
+	Skills    map[string]int `json:"skills"` // skill_name -> level
 }
 
 type Config struct {
