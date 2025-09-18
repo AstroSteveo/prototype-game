@@ -32,8 +32,8 @@ gantt
 ### How to Use the Roadmap
 **For Contributors:**
 1. Check [current milestone status](docs/roadmap/ROADMAP.md#-status-snapshot-by-area) to see what areas need work
-2. Review [milestone acceptance criteria](docs/design/TDD.md#mvp-milestones--acceptance-criteria) before starting work
-3. Follow the [developer guide](docs/dev/DEV.md) for build/test procedures
+2. Review [milestone acceptance criteria](docs/architecture/technical-design-document.md#mvp-milestones--acceptance-criteria) before starting work
+3. Follow the [developer guide](docs/development/developer-guide.md) for build/test procedures
 
 **For Project Planning:**
 - Use the [roadmap meeting template](docs/process/sessions/ROADMAP.md) for quarterly planning
@@ -43,12 +43,12 @@ gantt
 ## 📚 Documentation
 
 ### Design & Architecture
-- `docs/design/GDD.md` — Game Design Document (vision, player experience, scope)
-- `docs/design/TDD.md` — Technical Design Document (architecture, sharding plan, milestones)
+- `docs/product/vision/game-design-document.md` — Game Design Document (vision, player experience, scope)
+- `docs/architecture/technical-design-document.md` — Technical Design Document (architecture, sharding plan, milestones)
 - `docs/roadmap/ROADMAP.md` — Project roadmap with detailed visualizations
 
 ### Development & Process
-- `docs/dev/DEV.md` — Developer Guide (build, run, tests, Makefile)
+- `docs/development/developer-guide.md` — Developer Guide (build, run, tests, Makefile)
 - `docs/process/FEATURE_PROPOSAL.md` — Feature proposal workflow
 - `docs/process/adr/` — Architecture Decision Records
 - `.github/copilot-instructions.md` — GitHub Copilot/AI agent instructions

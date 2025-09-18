@@ -111,7 +111,7 @@ These labels automatically add items to the project board via [add-to-project.ym
 ### Documentation Links
 - **Agent Instructions**: [AGENTS.md](/AGENTS.md) - Authoritative guidelines for automation
 - **Contributing Guide**: [.github/CONTRIBUTING.md](/.github/CONTRIBUTING.md) - Developer workflow overview
-- **Development Guide**: [docs/dev/DEV.md](/docs/dev/DEV.md) - Daily development commands and tips
+- **Development Guide**: [docs/development/developer-guide.md](/docs/development/developer-guide.md) - Daily development commands and tips
 
 ## Enforcement and Compliance
 

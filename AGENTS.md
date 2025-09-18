@@ -30,3 +30,4 @@
 
 Utilities
 - Context prep: `scripts/agents/prepare-context.sh` emits a current repo snapshot for session pre-reads. Redirect output to a file (e.g., `docs/process/sessions/_latest_context.md`).
+- Agent validation: `scripts/agents/validate-onboarding.sh` verifies that an agent can access all necessary repository resources and that the onboarding framework is working correctly.
