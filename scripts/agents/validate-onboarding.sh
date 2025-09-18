@@ -78,14 +78,14 @@ echo "🔍 Checking for known broken references..."
 BROKEN_REFS=0
 
 # Check for outdated DEV.md references (excluding this validation script and the checklist)
-if grep -r "docs/dev/DEV.md" --exclude-dir=.git --exclude-dir=wiki-content --exclude-dir=scripts --exclude="agent-validation-checklist.md" . > /dev/null 2>&1; then
+if grep -r "docs/dev/DEV.md" --exclude-dir=.git --exclude-dir=wiki-content --exclude="$(basename "$0")" --exclude="agent-validation-checklist.md" . > /dev/null 2>&1; then
     echo "❌ Found references to non-existent docs/dev/DEV.md"
     BROKEN_REFS=1
     VALIDATION_FAILED=1
 fi
 
 # Check for outdated design doc references (excluding this validation script and the checklist)
-if grep -r "docs/design/GDD.md\|docs/design/TDD.md" --exclude-dir=.git --exclude-dir=wiki-content --exclude-dir=scripts --exclude="agent-validation-checklist.md" . > /dev/null 2>&1; then
+if grep -r "docs/design/GDD.md\|docs/design/TDD.md" --exclude-dir=.git --exclude-dir=wiki-content --exclude="$(basename "$0")" --exclude="agent-validation-checklist.md" . > /dev/null 2>&1; then
     echo "❌ Found references to non-existent docs/design/ files"
     BROKEN_REFS=1
     VALIDATION_FAILED=1
