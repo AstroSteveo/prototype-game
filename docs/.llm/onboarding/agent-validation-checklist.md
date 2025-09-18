@@ -30,6 +30,7 @@ Use this checklist to validate that an AI agent can successfully work with the p
   - [ ] `docs/.llm/onboarding/contribution-checklist.md` - Contribution checklist
   - [ ] `docs/.llm/onboarding/copilot-playbook.md` - Copilot guidance
   - [ ] `docs/.llm/onboarding/story-template.md` - Story template
+  - [ ] `docs/.llm/onboarding/file-organization-guide.md` - File organization and cleanup guide
 
 ## Build and Test Infrastructure Validation
 
@@ -53,6 +54,19 @@ Use this checklist to validate that an AI agent can successfully work with the p
 - [ ] **Copilot integration configured**
   - [ ] `.github/copilot-instructions.md` exists and is comprehensive
   - [ ] All file paths in copilot instructions are correct and accessible
+
+## File Organization and Cleanup Validation
+
+- [ ] **File organization practices**
+  - [ ] No duplicate files with similar content exist
+  - [ ] No files with problematic naming patterns (*-new.md, *-old.md, *-backup.md, etc.)
+  - [ ] All obsolete files have been removed
+  - [ ] Similar content is consolidated appropriately
+
+- [ ] **Cleanup validation**
+  - [ ] No temporary files left in repository
+  - [ ] All created files serve a distinct purpose
+  - [ ] File organization guide has been consulted for any file operations
 
 ## Cross-Reference Validation
 

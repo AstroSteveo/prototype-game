@@ -58,18 +58,18 @@ extract_section "$PROJECT_ROOT/README.md" "^# prototype-game" "^Notes:" "$WIKI_D
 # Extract Getting Started content
 echo "🚀 Extracting Getting Started content..."
 extract_section "$PROJECT_ROOT/README.md" "^Quick start" "^WebSocket" "$WIKI_DIR/getting-started/quick-start.md"
-extract_section "$PROJECT_ROOT/docs/dev/DEV.md" "^## Prerequisites" "^## Quick Start" "$WIKI_DIR/getting-started/prerequisites.md"
+extract_section "$PROJECT_ROOT/docs/development/developer-guide.md" "^## Prerequisites" "^## Quick Start" "$WIKI_DIR/getting-started/prerequisites.md"
 
 # Extract Development Guide content
 echo "🛠️ Extracting Development Guide content..."
-extract_full_file "$PROJECT_ROOT/docs/dev/DEV.md" "$WIKI_DIR/development/dev-guide-full.md"
-extract_section "$PROJECT_ROOT/docs/dev/DEV.md" "^## Quick Start" "^## Reconnect" "$WIKI_DIR/development/build-system.md"
-extract_section "$PROJECT_ROOT/docs/dev/DEV.md" "^### Tests" "^### Ports" "$WIKI_DIR/development/testing.md"
+extract_full_file "$PROJECT_ROOT/docs/development/developer-guide.md" "$WIKI_DIR/development/dev-guide-full.md"
+extract_section "$PROJECT_ROOT/docs/development/developer-guide.md" "^## Quick Start" "^## Reconnect" "$WIKI_DIR/development/build-system.md"
+extract_section "$PROJECT_ROOT/docs/development/developer-guide.md" "^### Tests" "^### Ports" "$WIKI_DIR/development/testing.md"
 
 # Extract Architecture & Design content
 echo "🏗️ Extracting Architecture & Design content..."
-extract_full_file "$PROJECT_ROOT/docs/design/GDD.md" "$WIKI_DIR/architecture/game-design-document.md"
-extract_full_file "$PROJECT_ROOT/docs/design/TDD.md" "$WIKI_DIR/architecture/technical-architecture.md"
+extract_full_file "$PROJECT_ROOT/docs/product/vision/game-design-document.md" "$WIKI_DIR/architecture/game-design-document.md"
+extract_full_file "$PROJECT_ROOT/docs/architecture/technical-design-document.md" "$WIKI_DIR/architecture/technical-architecture.md"
 
 # Extract Contributing content
 echo "🤝 Extracting Contributing content..."
@@ -83,7 +83,7 @@ extract_full_file "$PROJECT_ROOT/.github/copilot-instructions.md" "$WIKI_DIR/aut
 
 # Extract API and protocol content
 echo "📚 Extracting API content..."
-extract_section "$PROJECT_ROOT/docs/design/TDD.md" "^## Protocol" "^## Persistence" "$WIKI_DIR/api/websocket-protocol.md" || true
+extract_section "$PROJECT_ROOT/docs/architecture/technical-design-document.md" "^## Protocol" "^## Persistence" "$WIKI_DIR/api/websocket-protocol.md" || true
 
 # Create some additional processed content
 echo ""

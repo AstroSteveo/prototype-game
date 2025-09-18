@@ -61,6 +61,7 @@ check_file "docs/.llm/onboarding/contribution-checklist.md" "Contribution Checkl
 check_file "docs/.llm/onboarding/copilot-playbook.md" "Copilot Playbook" || VALIDATION_FAILED=1
 check_file "docs/.llm/onboarding/story-template.md" "Story Template" || VALIDATION_FAILED=1
 check_file "docs/.llm/onboarding/agent-validation-checklist.md" "Agent Validation Checklist" || VALIDATION_FAILED=1
+check_file "docs/.llm/onboarding/file-organization-guide.md" "File Organization Guide" || VALIDATION_FAILED=1
 echo ""
 
 echo "🔧 Checking build infrastructure..."
@@ -85,7 +86,7 @@ if grep -r "docs/dev/DEV.md" --exclude-dir=.git --exclude-dir=wiki-content --exc
 fi
 
 # Check for outdated design doc references (excluding this validation script and the checklist)
-if grep -r "docs/design/GDD.md\|docs/design/TDD.md" --exclude-dir=.git --exclude-dir=wiki-content --exclude="$(basename "$0")" --exclude="agent-validation-checklist.md" . > /dev/null 2>&1; then
+if grep -r "docs/design/GDD\.md\|docs/design/TDD\.md" --exclude-dir=.git --exclude-dir=wiki-content --exclude="$(basename "$0")" --exclude="agent-validation-checklist.md" --exclude="file-organization-guide.md" . > /dev/null 2>&1; then
     echo "❌ Found references to non-existent docs/design/ files"
     BROKEN_REFS=1
     VALIDATION_FAILED=1
@@ -93,6 +94,30 @@ fi
 
 if [[ $BROKEN_REFS -eq 0 ]]; then
     echo "✅ No broken references found"
+fi
+echo ""
+
+echo "📁 Checking file organization..."
+# Check for potential duplicate files (simplified check)
+DUPLICATE_CHECK=0
+
+# Look for files with similar names that might be duplicates
+SIMILAR_FILES=$(find docs/ -name "*.md" | xargs basename -s .md | sort | uniq -d 2>/dev/null || true)
+if [[ -n "$SIMILAR_FILES" ]]; then
+    echo "⚠️  Found files with similar names (review for potential duplicates):"
+    echo "$SIMILAR_FILES" | sed 's/^/    /'
+    DUPLICATE_CHECK=1
+fi
+
+# Check for common problematic patterns
+if find docs/ -name "*-new.md" -o -name "*-old.md" -o -name "*-backup.md" -o -name "*-copy.md" 2>/dev/null | grep -q .; then
+    echo "⚠️  Found files with naming patterns that suggest duplicates:"
+    find docs/ -name "*-new.md" -o -name "*-old.md" -o -name "*-backup.md" -o -name "*-copy.md" 2>/dev/null | sed 's/^/    /' || true
+    DUPLICATE_CHECK=1
+fi
+
+if [[ $DUPLICATE_CHECK -eq 0 ]]; then
+    echo "✅ No obvious file organization issues found"
 fi
 echo ""
 
