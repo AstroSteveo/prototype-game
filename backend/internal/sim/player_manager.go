@@ -147,7 +147,40 @@ func (pm *PlayerManager) UnequipItem(player *Player, slot SlotID, compartment Co
 
 // GetPlayerEncumbrance calculates the player's current encumbrance state
 func (pm *PlayerManager) GetPlayerEncumbrance(player *Player) EncumbranceState {
-	return player.Inventory.ComputeEncumbrance(pm.itemTemplates)
+	// Start with inventory encumbrance
+	encumbrance := player.Inventory.ComputeEncumbrance(pm.itemTemplates)
+	
+	// Add weight from equipped items
+	equippedWeight := 0.0
+	for _, equippedItem := range player.Equipment.Slots {
+		if equippedItem != nil {
+			if template, exists := pm.itemTemplates[equippedItem.Instance.TemplateID]; exists {
+				equippedWeight += template.Weight * float64(equippedItem.Instance.Quantity)
+			}
+		}
+	}
+	
+	// Update encumbrance with equipped weight
+	totalWeight := encumbrance.CurrentWeight + equippedWeight
+	weightPct := totalWeight / encumbrance.MaxWeight
+	
+	// Recalculate movement penalty with total weight
+	var movementPenalty float64 = 1.0
+	if weightPct > 0.8 {
+		if weightPct <= 1.0 {
+			// Linear penalty from 100% to 50% speed
+			movementPenalty = 1.0 - 0.5*(weightPct-0.8)/0.2
+		} else {
+			// Severe penalty beyond 100%
+			movementPenalty = 0.5 * (1.0 / weightPct)
+		}
+	}
+	
+	encumbrance.CurrentWeight = totalWeight
+	encumbrance.WeightPct = weightPct
+	encumbrance.MovementPenalty = movementPenalty
+	
+	return encumbrance
 }
 
 // GetEquippedItemStats returns combined stats from all equipped items
