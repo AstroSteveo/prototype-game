@@ -102,10 +102,11 @@ echo "📁 Checking file organization..."
 DUPLICATE_CHECK=0
 
 # Look for files with similar names that might be duplicates
-SIMILAR_FILES=$(find docs/ -name "*.md" | xargs basename -s .md | sort | uniq -d 2>/dev/null || true)
-if [[ -n "$SIMILAR_FILES" ]]; then
-    echo "⚠️  Found files with similar names (review for potential duplicates):"
-    echo "$SIMILAR_FILES" | sed 's/^/    /'
+# Improved duplicate detection: group files by prefix (before first dash or underscore)
+SIMILAR_GROUPS=$(find docs/ -name "*.md" 2>/dev/null | awk -F/ '{print $NF}' | sed 's/\.md$//' | awk -F'[-_]' '{print $1}' | sort | uniq -c | awk '$1 > 1 {print $2 " (" $1 " files)"}')
+if [[ -n "$SIMILAR_GROUPS" ]]; then
+    echo "⚠️  Found files with similar prefixes (review for potential duplicates):"
+    echo "$SIMILAR_GROUPS" | sed 's/^/    /'
     DUPLICATE_CHECK=1
 fi
 
