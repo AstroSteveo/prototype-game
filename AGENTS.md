@@ -3,6 +3,7 @@
 ## Instruction Scope
 - This file defines default instructions for the repository.
 - Subdirectories may provide their own `AGENTS.md` to override or extend these rules.
+- **GitHub Copilot Instructions**: `.github/copilot-instructions.md` is the single source of truth for GitHub Copilot configuration. Do not create duplicate instruction files.
 - Current subtree guides:
   - `backend/AGENTS.md` for Go services and libraries.
   - `docs/AGENTS.md` for reference documentation.
