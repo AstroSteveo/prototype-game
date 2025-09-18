@@ -113,16 +113,19 @@ echo ""
 # Test context script
 echo "📝 Testing context preparation..."
 if [[ -x "scripts/agents/prepare-context.sh" ]]; then
-    # Run script and capture both output and exit code
-    if OUTPUT=$(./scripts/agents/prepare-context.sh 2>&1) && echo "$OUTPUT" | grep -q "Generated:"; then
+    # Run script and capture both output and exit code using a temporary file
+    CONTEXT_TMP=$(mktemp)
+    if ./scripts/agents/prepare-context.sh >"$CONTEXT_TMP" 2>&1 && grep -q "Generated:" "$CONTEXT_TMP"; then
         echo "✅ Context preparation script works"
-    elif echo "$OUTPUT" | grep -q "Generated:"; then
+    elif grep -q "Generated:" "$CONTEXT_TMP"; then
         echo "⚠️  Context preparation script works but has warnings (this is expected if ripgrep is not available)"
     else
         echo "❌ Context preparation script failed"
-        echo "Output: $OUTPUT"
+        echo "Output:"
+        cat "$CONTEXT_TMP"
         VALIDATION_FAILED=1
     fi
+    rm -f "$CONTEXT_TMP"
 else
     echo "❌ Context preparation script not executable"
     VALIDATION_FAILED=1
