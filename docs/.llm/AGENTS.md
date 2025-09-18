@@ -7,8 +7,10 @@
 ## Onboarding Sequence
 1. Read `docs/README.md` to understand documentation categories.
 2. Follow the quick-start steps in `onboarding/quick-start.md` before making changes.
-3. Use `onboarding/contribution-checklist.md` as the gating checklist prior to submitting work or opening PRs.
-4. Reference `onboarding/story-template.md` when drafting roadmap stories, planning issues, or doc change logs.
+3. Review `onboarding/file-organization-guide.md` to understand file management best practices.
+4. Complete the validation checklist in `onboarding/agent-validation-checklist.md` to ensure full repository access.
+5. Use `onboarding/contribution-checklist.md` as the gating checklist prior to submitting work or opening PRs.
+6. Reference `onboarding/story-template.md` when drafting roadmap stories, planning issues, or doc change logs.
 
 ## Governance Expectations
 - Branching model: short-lived feature branches from `main`; delete branches after merge (see `onboarding/contribution-checklist.md`).

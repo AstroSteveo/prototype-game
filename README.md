@@ -1,73 +1,229 @@
 # prototype-game
 
-A multiplayer game backend with seamless local instancing (server meshing), real-time WebSocket communication, and server-authoritative simulation. Built in Go with comprehensive testing and automated CI/CD.
+A server-authoritative multiplayer simulation backend featuring:
+- Seamless local instancing / spatial cell handover (foundation for "server meshing")
+- Deterministic tick loop driving world simulation
+- Gateway ↔ Simulation process separation (bootstrapping, auth, routing hints)
+- Optional real-time WebSocket transport (activated via `ws` build tag)
+- Roadmap toward persistence, combat, equipment, and a full MVP game loop
 
-## 📈 Roadmap Visualization
+> Canonical milestone & risk source: [docs/product/roadmap/roadmap.md](docs/product/roadmap/roadmap.md)
 
-### Current Release Timeline
+Last Updated: 2025-09-18
+
+---
+
+<!-- ai-index
+version: 0.1
+project: prototype-game
+status_date: 2025-09-18
+areas:
+  simulation_core: complete
+  gateway_auth: baseline
+  websocket_transport: scaffold
+  persistence: in_progress
+  combat: upcoming
+  equipment: upcoming
+  documentation: ongoing
+  automation: ongoing
+risk_level: prototype
+note: Refer to docs/product/roadmap/roadmap.md for authoritative, frequently updated plan.
+-->
+
+## 🚦 Project Status Snapshot
+
+| Area | Phase | State | Notes |
+|------|-------|-------|-------|
+| Simulation core | M0–M2 | Complete (prototype) | Cell math + local handover logic functional |
+| Gateway auth/session | M3 | Baseline | Token issuance + validation endpoints |
+| WebSocket transport | M4 | Scaffold | Build-tag gated, minimal JSON protocol handshake |
+| Persistence | M5 | In Progress | Schema + durability criteria defined (see roadmap) |
+| Combat systems | M6 | Upcoming | Design depends on persisted entity model |
+| Equipment & items | M6 | Upcoming | Data modeling pending persistence maturity |
+| Tooling & automation | Ongoing | Active | Make targets + scripts evolving |
+| Documentation & governance | Ongoing | Structured | ADR process + role/session guides |
+
+Update this table in lockstep with roadmap.md to avoid drift.
+
+---
+
+## 📈 Roadmap (Snapshot Excerpt)
+For full detail (risks, dependencies, acceptance criteria) consult: [docs/product/roadmap/roadmap.md](docs/product/roadmap/roadmap.md)
 ```mermaid
 gantt
-    title Current Release - Key Milestones
-    dateFormat YYYY-MM-DD
-    axisFormat %W
-    
-    section M5: Persistence
-    Database Integration  :active, db, 2024-01-08, 14d
-    State Persistence    :persist, after db, 17d
-    M5 Complete         :milestone, m5-done, after persist, 0d
-    
-    section M6: Features
-    Combat Systems      :combat, after m5-done, 21d
-    Equipment          :equip, after combat, 14d
-    M6 Complete        :milestone, m6-done, after equip, 0d
+    title Delivery Flow (Snapshot Only — See roadmap.md for Source of Truth)
+    dateFormat  YYYY-MM-DD
+    axisFormat  %b %d
+
+    section Completed
+    Core Simulation (M0-M1)        :done,    m0, 2024-12-01, 30d
+    Local Handover + Cells (M2)    :done,    m2, 2025-02-01, 30d
+    Gateway + Auth (M3)            :done,    m3, 2025-03-05, 21d
+    WS Transport Scaffold (M4)     :done,    m4, 2025-04-01, 28d
+
+    section In Progress
+    Persistence Foundations (M5)   :active,  m5a, 2025-05-01, 75d
+    State Durability & Replay      :        m5b, after m5a, 45d
+
+    section Upcoming
+    Combat Systems (M6)            :        m6c, after m5b, 45d
+    Equipment & Items (M6)         :        m6e, after m6c, 30d
+    MVP Loop Hardening (M7)        :milestone, m7, after m6e, 0d
 ```
 
-### Quick Links
-- 📊 **[Detailed Roadmap](docs/roadmap/ROADMAP.md)** — Updated Sept 2025 with "Full MVP Loop and Persistence" timeline
-- 🛠️ **[Implementation Guide](docs/dev/ROADMAP_IMPLEMENTATION.md)** — Technical requirements for M5-M7 features
-- 🎯 **[GitHub Project Board](https://github.com/users/AstroSteveo/projects/2)** — Live project tracking
-- 📋 **[Roadmap Planning Guide](docs/process/ROADMAP_MEETINGS.md)** — How to participate in roadmap discussions
-- 📝 **[Issue #109](https://github.com/AstroSteveo/prototype-game/issues/109)** — Latest roadmap planning meeting outcomes
+---
 
-### How to Use the Roadmap
-**For Contributors:**
-1. Check [current milestone status](docs/roadmap/ROADMAP.md#-status-snapshot-by-area) to see what areas need work
-2. Review [milestone acceptance criteria](docs/design/TDD.md#mvp-milestones--acceptance-criteria) before starting work
-3. Follow the [developer guide](docs/dev/DEV.md) for build/test procedures
+## 🔗 Quick Links
+- 📊 **Roadmap**: [docs/product/roadmap/roadmap.md](docs/product/roadmap/roadmap.md)
+- 🛠️ **Implementation Guide (M5–M7)**: [docs/product/roadmap/implementation-playbook.md](docs/product/roadmap/implementation-playbook.md)
+- 🎯 **Project Board**: [GitHub Project #2](https://github.com/users/AstroSteveo/projects/2)
+- 🧪 **Developer Guide**: [docs/development/developer-guide.md](docs/development/developer-guide.md)
+- 🧭 **Technical Design Doc**: [docs/architecture/technical-design-document.md](docs/architecture/technical-design-document.md)
+- 🗂️ **Game Design / Vision**: [docs/product/vision/game-design-document.md](docs/product/vision/game-design-document.md)
+- 📝 **Latest Roadmap Meeting Outcomes**: [Issue #109](https://github.com/AstroSteveo/prototype-game/issues/109)
+- 🧬 **ADRs**: [docs/process/adr/](docs/process/adr/)
+- 🤖 **Copilot / Agent Guidance**: [.github/copilot-instructions.md](.github/copilot-instructions.md)
 
-**For Project Planning:**
-- Use the [roadmap meeting template](docs/process/sessions/ROADMAP.md) for quarterly planning
-- Reference [risk assessments](docs/roadmap/ROADMAP.md#️-risks-and-mitigations) for decision making
-- Track progress via the [status dashboard](docs/roadmap/ROADMAP.md#-status-snapshot-by-area)
+---
 
-## 📚 Documentation
+## 🧪 Architecture Overview
+```
+[Client]
+   |  (HTTP auth bootstrap + WebSocket real-time)
+   v
+[ Gateway ]  -- health, login, validate, sim selection
+   |
+   v
+[ Simulation Process(es) ]
+   - Tick loop (deterministic)
+   - Spatial cell partitioning & handover
+   - Entity state transitions
+   - (Planned) persistence adapters (snapshot + journal)
+```
+Planned extensions: persistence integration, combat pipeline, equipment systems, observability (metrics & structured events), replay validation.
 
-### Design & Architecture
-- `docs/design/GDD.md` — Game Design Document (vision, player experience, scope)
-- `docs/design/TDD.md` — Technical Design Document (architecture, sharding plan, milestones)
-- `docs/roadmap/ROADMAP.md` — Project roadmap with detailed visualizations
+---
 
-### Development & Process
-- `docs/dev/DEV.md` — Developer Guide (build, run, tests, Makefile)
-- `docs/process/FEATURE_PROPOSAL.md` — Feature proposal workflow
-- `docs/process/adr/` — Architecture Decision Records
-- `.github/copilot-instructions.md` — GitHub Copilot/AI agent instructions
+## 🧩 Feature Matrix
+| Capability | Status | Build Tag / Flag | Notes |
+|------------|--------|------------------|-------|
+| Tick-based simulation | Prototype | n/a | Deterministic loop |
+| Spatial cell handover | Prototype | n/a | Local instance only |
+| Gateway auth + tokens | Baseline | n/a | Dev-only security |
+| WebSocket transport | Scaffold | `ws` | Minimal JSON handshake |
+| Persistence layer | In Progress | n/a | Schema + durability design |
+| Combat system | Upcoming | n/a | Depends on persistence |
+| Equipment/items | Upcoming | n/a | Data modeling pending |
+| Observability metrics | Planned | n/a | Roadmap M7+ |
 
-Quick start (Go backend, local dev):
-- Makefile (recommended): `make run` then `make login`
-- Manual:
-  - `cd backend`
-  - Run sim (WS enabled): `go run -tags ws ./cmd/sim --port 8081`
-  - Run gateway: `go run ./cmd/gateway --port 8080 --sim localhost:8081`
-  - Health checks: `curl localhost:8081/healthz` and `curl localhost:8080/healthz`
-  - Login (dev): `curl 'http://localhost:8080/login?name=Test'`
-  - Validate token (dev): `curl 'http://localhost:8080/validate?token=<token>'`
+---
 
-WebSocket (US-101)
-- Sim registers `/ws` endpoint. By default, it is a stub returning `501` until built with the `ws` build tag.
-- Enable WS: `go run -tags ws ./cmd/sim --gateway http://localhost:8080`
-- Login response includes WebSocket URL: `{ "sim": { "address": "ws://host:port/ws", "protocol": "ws-json", "version": "1" } }`
-- First message from client: `{"token":"..."}`. Server replies with `{"type":"join_ack","data":{...}}` or `{"type":"error",...}`.
+## 🚀 Quick Start (Local Dev)
+Using Make (preferred):
+```bash
+make run     # starts simulation (ws enabled) + gateway
+make login   # issues a dev token and prints it
+```
+Manual:
+```bash
+cd backend
+# Simulation (with WebSocket)
+go run -tags ws ./cmd/sim --port 8081
+# Gateway
+go run ./cmd/gateway --port 8080 --sim localhost:8081
+# Health
+curl localhost:8081/healthz
+curl localhost:8080/healthz
+# Login & validate
+curl 'http://localhost:8080/login?name=Test'
+curl 'http://localhost:8080/validate?token=<token>'
+```
+Planned container workflow (placeholder—add Dockerfile / compose before using):
+```bash
+docker compose up --build
+```
 
-Notes:
-- M0 focuses on the simulation loop, cell math, and handover logic in-process (local sharding). Networking to clients is stubbed until WebSocket transport is added.
+---
+
+## 🌐 WebSocket Protocol (Current Minimal Form)
+1. Acquire token via `GET /login?name=`
+2. Connect: `ws://`
+3. First client frame (auth):
+   ```json
+   {"token":"<issued-token>"}
+   ```
+4. Server response:
+   - Success: `{"type":"join_ack","data":{...}}`
+   - Failure: `{"type":"error","code":"auth_failed","message":"..."}`
+Protocol will expand with: state deltas, movement/action submission, debug streams. Treat current shape as unstable.
+
+---
+
+## 🧱 Persistence (M5 – In Progress)
+Objectives: durable entity/world state, snapshot + journal replay, deterministic recovery, schema versioning. See roadmap for acceptance criteria.
+
+## ⚔️ Combat & Equipment (M6 – Upcoming)
+Planned: authoritative action resolution, component-based stats, deterministic ordering, replay validation. Designs remain provisional.
+
+---
+
+## 🛠️ Development Workflow
+- Tests: `make test`
+- (If configured) lint/format: `make lint`
+- Propose significant changes with an ADR (see [docs/process/adr/](docs/process/adr/))
+- Large feature? Start with [Feature Proposal](docs/process/FEATURE_PROPOSAL.md)
+
+---
+
+## 🤝 Contributing Guidelines
+1. Review active milestone issues (Project Board)
+2. Confirm acceptance criteria BEFORE coding
+3. Add/modify ADRs for architectural shifts
+4. Keep PRs focused; reference related issues
+5. Include test coverage for new logic
+
+---
+
+## 🗺️ Planning & Governance Resources
+- Roadmap meeting template: [docs/process/sessions/ROADMAP.md](docs/process/sessions/ROADMAP.md)
+- Role definitions: [docs/process/roles.md](docs/process/roles.md)
+- Session guides (planning, decisions, retros): [docs/process/sessions/](docs/process/sessions/)
+
+---
+
+## 🧪 Testing Strategy (Roadmap Evolution)
+Layers (current + planned):
+- Unit & tick determinism tests
+- Handover boundary tests
+- Load/perf harness (post-persistence)
+- Replay integrity validation (persistence)
+
+---
+
+## 🤖 LLM / Automation Notes
+Designed to be machine-parsable:
+- `ai-index` comment: stable keys for agents
+- Clearly delimited sections; titles should NOT be reworded by tooling
+- Avoid inferring implementation completeness beyond stated tables
+Automation contributors: follow `.github/copilot-instructions.md` and governance docs.
+
+---
+
+## ⚠️ Prototype Disclaimer
+Security, auth, persistence, and network protocol are NOT production-grade. Expect breaking changes until explicit stabilization (post-M7).
+
+---
+
+## 📄 License
+Add or reference a LICENSE file (none detected at time of this update). Consider adding one to clarify usage rights.
+
+---
+
+## 🔄 Maintenance Guidance
+When updating this README:
+- Keep `ai-index` synchronized with roadmap.md
+- Update date stamp (UTC) at top
+- Remove deprecated sections instead of leaving stale content
+- Validate internal links after structural repo changes
+
+---

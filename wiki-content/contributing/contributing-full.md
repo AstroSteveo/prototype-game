@@ -5,7 +5,7 @@ This repository uses a lightweight, test-first workflow. Even for solo work with
 Key docs
 - Workflow and conventions: see [AGENTS.md](../AGENTS.md)
 - AI agent setup: see [Copilot instructions](copilot-instructions.md)
-- Daily dev commands: see [DEV guide](../docs/dev/DEV.md)
+- Daily dev commands: see [Developer Guide](docs/development/developer-guide.md)
 - Backlog and status: see [BACKLOG](../docs/process/BACKLOG.md) and [PROGRESS](../docs/process/PROGRESS.md)
 - Makefile helpers: see [Makefile](../Makefile) or run `make help`
 

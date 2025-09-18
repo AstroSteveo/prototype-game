@@ -2,8 +2,8 @@
 
 This document maps the project vision, design pillars, and user stories from the Game Design Document (GDD) to the technical systems, milestones, and implementation components defined in the Technical Design Document (TDD).
 
-**Last Updated**: 2024-01-10  
-**Next Review**: During roadmap alignment sessions
+**Last Updated**: 2025-01-15  
+**Next Review**: During roadmap alignment sessions (see [ROADMAP_ALIGNMENT_SESSION.md](../sessions/ROADMAP_ALIGNMENT_SESSION.md))
 
 ## Purpose
 
@@ -173,38 +173,83 @@ The VRTM ensures that:
 
 ## Gap Analysis & Roadmap Issues
 
-### High Priority Gaps
-1. **Equipment System** - Critical for "meaningful loadouts" pillar
-   - Missing: Equipment slots, cooldowns, stat effects
+**Updated**: 2025-01-15 (Post US-002 Roadmap Alignment Workshop)
+
+### Roadmap Alignment Workshop Outcomes
+Following the comprehensive roadmap alignment session for US-002, the following post-MVP milestone structure has been established to address the "Meaningful Loadouts" design pillar:
+
+**M6-M9 Post-MVP Timeline**: 13-17 weeks total
+- **M6**: Equipment Foundation (4-5 weeks)
+- **M7**: Skill Progression System (3-4 weeks) 
+- **M8**: Targeting & Combat Resolution (4-5 weeks)
+- **M9**: Integration & Polish (2-3 weeks)
+
+### High Priority Gaps (M6-M8 Scope)
+1. **Equipment System** - **M6 Milestone** - Critical for "meaningful loadouts" pillar
+   - Missing: Equipment slots, cooldowns, stat effects, persistence
    - Impact: Core user story "equip weapon and feel stats" blocked
-   - Recommendation: Create US-002 for equipment system MVP
+   - Implementation: Database schema, server validation, basic equip/unequip
+   - Timeline: 4-5 weeks
+   - Dependencies: None (foundation system)
+   - **Status**: Ready for M6 implementation planning
 
-2. **Skill Progression** - Required for character advancement
-   - Missing: XP pipeline, skill unlocks, stanza system
-   - Impact: Progression user stories blocked
-   - Recommendation: Create US-003 for skill system foundation
+2. **Skill Progression** - **M7 Milestone** - Required for character advancement
+   - Missing: XP pipeline, skill unlocks, stanza system, skill gating
+   - Impact: Progression user stories blocked, equipment requirements
+   - Implementation: XP events, skill validation, unlock notifications
+   - Timeline: 3-4 weeks
+   - Dependencies: Equipment system (M6) for skill requirements
+   - **Status**: Blocked until M6 completion
 
-3. **Targeting System** - Essential for combat readiness
-   - Missing: Target selection, difficulty display, metadata
+3. **Targeting System** - **M8 Milestone** - Essential for combat readiness
+   - Missing: Target selection, difficulty display, metadata, combat resolution
    - Impact: Combat preparation user stories blocked
-   - Recommendation: Create US-004 for targeting system
+   - Implementation: Target validation, difficulty colors, damage types
+   - Timeline: 4-5 weeks
+   - Dependencies: Equipment (M6) and Skills (M7) for stat calculations
+   - **Status**: Blocked until M6-M7 completion
 
-### Medium Priority Gaps
-4. **Inventory UI** - Needed for equipment management
-   - Missing: Weight/bulk visualization, equip interactions
+### Medium Priority Gaps (M8-M9 Scope)
+4. **Inventory UI** - **M9 Milestone** - Needed for equipment management
+   - Missing: Weight/bulk visualization, equip interactions, drag-drop
    - Impact: User experience for loadout management
-   - Recommendation: Create US-005 for inventory interface
+   - Implementation: Frontend integration with backend inventory system
+   - Timeline: Included in M9 polish phase
+   - Dependencies: Equipment system (M6) completion
+   - **Status**: Deferred to M9 integration phase
 
-5. **Combat Resolution** - Required for ability execution
-   - Missing: Damage types, status effects, ability system
+5. **Combat Resolution** - **M8 Milestone** - Required for ability execution
+   - Missing: Damage types, status effects, ability system integration
    - Impact: Combat user stories blocked
-   - Recommendation: Create US-006 for combat foundation
+   - Implementation: Damage calculation, mitigation tables, status effects
+   - Timeline: Included in M8 with targeting system
+   - Dependencies: Equipment (M6) and Skills (M7) for stat effects
+   - **Status**: Blocked until M6-M7 completion
 
-### Low Priority Gaps
+### Low Priority Gaps (Post M9)
 6. **Advanced Networking** - Cross-node handover (Phase B)
    - Missing: Multi-node architecture
    - Impact: Scalability beyond single process
-   - Recommendation: Defer to Phase B milestone
+   - Recommendation: Defer to Phase B milestone (post-loadouts)
+   - **Status**: Unchanged - deferred to future phase
+
+### Risk Assessment Updates (Post-Workshop)
+
+#### Newly Identified Risks
+- **Equipment-Skill System Complexity**: High interdependency between M6/M7 systems
+  - Mitigation: Phased delivery with equipment foundation first
+  - Owner: Technical Lead
+  - Review: Every 2 weeks during M6-M7 implementation
+
+- **Performance Under Load**: Encumbrance calculations and stat effects may impact tick budget
+  - Mitigation: Early performance testing with synthetic equipment data
+  - Owner: Backend Team
+  - Review: During M6 implementation, before M7 start
+
+- **UI/UX Complexity**: Inventory interface design complexity underestimated
+  - Mitigation: Early prototype and user testing during M6
+  - Owner: Frontend Team (when available)
+  - Review: M8 planning phase
 
 ## Risk Assessment
 
@@ -239,6 +284,13 @@ The VRTM ensures that:
 - Update milestone status and timelines based on planning outcomes
 - Reassess risk levels for upcoming milestones
 - Document any new gaps or dependencies identified
+
+### Post-US-002 Workshop Integration
+- **January 15, 2025**: Comprehensive roadmap alignment workshop completed
+- **M6-M9 Milestone Structure**: Established for "Meaningful Loadouts" implementation
+- **GitHub Issues**: [Defined for M6-M9 milestones](../sessions/github-issues-m6-m9.md) (pending creation)
+- **Stakeholder Communication**: [Workshop outcomes documented](../sessions/stakeholder-communication-us002.md)
+- **Next Workshop**: Scheduled after M6 completion to assess progress and refine M7-M9 scope
 
 ### Continuous Maintenance
 - Update status after milestone completion

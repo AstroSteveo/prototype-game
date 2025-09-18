@@ -125,7 +125,7 @@ From the repo root:
 - Spatial math: `backend/internal/spatial`
 - WebSocket transport: `backend/internal/transport/ws`
 - CLI probe: `backend/cmd/wsprobe`
-- Backlog/TDD: GitHub issues, `docs/design/TDD.md`
+- Backlog/TDD: GitHub issues, `docs/architecture/technical-design-document.md`
 
 ## Automation
 
@@ -174,5 +174,5 @@ If automation doesn't trigger or needs to be re-run:
 - [ ] Unit tests added/updated and passing (`make test`)
 - [ ] Integration tests added/updated if applicable (`make test-ws`)
 - [ ] GitHub issue updated with status and tests/evidence
-- [ ] Developer docs updated if commands changed (`docs/dev/DEV.md`)
+- [ ] Developer docs updated if commands changed (`docs/development/developer-guide.md`)
 - [ ] `go fmt`, `go vet`, and all tests pass
