@@ -9,8 +9,10 @@ Use this checklist before finalizing any automated change.
 
 ## Change Preparation
 - [ ] Verified applicable instructions in `AGENTS.md` files for all touched directories.
+- [ ] Reviewed `file-organization-guide.md` and searched for existing similar content before creating new files.
 - [ ] Updated `docs/README.md` if new long-lived docs were added or reorganized.
 - [ ] Cross-links in documentation updated to new paths.
+- [ ] Removed any obsolete or duplicate files identified during the change process.
 
 ## Validation
 - [ ] Required commands executed (see task instructions; typically `make fmt vet test test-ws` for code, or note N/A for doc-only).
