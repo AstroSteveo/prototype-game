@@ -23,6 +23,8 @@ type Engine struct {
 	rng       *rand.Rand
 	stopCh    chan struct{}
 	stoppedCh chan struct{}
+	// Player management with inventory/equipment
+	playerMgr *PlayerManager
 	// lifecycle guards
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -42,6 +44,9 @@ type Engine struct {
 }
 
 func NewEngine(cfg Config) *Engine {
+	playerMgr := NewPlayerManager()
+	playerMgr.CreateTestItemTemplates() // Initialize with test items
+
 	return &Engine{
 		cfg:       cfg,
 		cells:     make(map[spatial.CellKey]*CellInstance),
@@ -50,6 +55,7 @@ func NewEngine(cfg Config) *Engine {
 		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
 		stopCh:    make(chan struct{}),
 		stoppedCh: make(chan struct{}),
+		playerMgr: playerMgr,
 	}
 }
 
@@ -313,6 +319,8 @@ func (e *Engine) AddOrUpdatePlayer(id, name string, pos spatial.Vec2, vel spatia
 	pl, ok := e.players[id]
 	if !ok {
 		pl = &Player{Entity: Entity{ID: id, Kind: KindPlayer, Pos: pos, Vel: vel, Name: name}, OwnedCell: key}
+		// Initialize inventory and equipment for new players
+		e.playerMgr.InitializePlayer(pl)
 		e.players[id] = pl
 		cell.Entities[id] = &pl.Entity
 	} else {
@@ -361,6 +369,11 @@ func (e *Engine) GetPlayer(id string) (Player, bool) {
 		return Player{}, false
 	}
 	return *p, true
+}
+
+// GetPlayerManager returns the engine's player manager
+func (e *Engine) GetPlayerManager() *PlayerManager {
+	return e.playerMgr
 }
 
 // DevSpawn creates a player at a position with zero velocity (dev-only helper).

@@ -33,7 +33,11 @@ type JoinAck struct {
 		CellSize            float64 `json:"cell_size"`
 		HandoverHysteresisM float64 `json:"handover_hysteresis"`
 	} `json:"config"`
-	ResumeToken string `json:"resume,omitempty"`
+	Inventory   *sim.Inventory       `json:"inventory"`
+	Equipment   *sim.Equipment       `json:"equipment"`
+	Skills      map[string]int       `json:"skills"`
+	Encumbrance sim.EncumbranceState `json:"encumbrance"`
+	ResumeToken string               `json:"resume,omitempty"`
 }
 
 // ErrorMsg is a structured error for transport.
@@ -74,6 +78,16 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	ack.Config.AOIRadius = cfg.AOIRadius
 	ack.Config.CellSize = cfg.CellSize
 	ack.Config.HandoverHysteresisM = cfg.HandoverHysteresisM
+
+	// Include inventory and equipment data in join response
+	ack.Inventory = snap.Inventory
+	ack.Equipment = snap.Equipment
+	ack.Skills = snap.Skills
+
+	// Calculate current encumbrance
+	playerMgr := eng.GetPlayerManager()
+	ack.Encumbrance = playerMgr.GetPlayerEncumbrance(&snap)
+
 	// Increment login count and persist immediately (best-effort) for visibility.
 	if playerStore != nil {
 		if st, ok, _ := playerStore.Load(ctx, pid); ok {
