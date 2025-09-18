@@ -7,7 +7,7 @@
 
 ## Project Structure & Module Organization
 - **Root:** High‑level docs in `docs/` organized as:
-  - `docs/design/` (GDD, TDD)
+  - `docs/product/vision/` (GDD), `docs/architecture/` (TDD)
   - `docs/dev/` (DEV guide)
  - **Backlog & progress:** Track tasks and status in GitHub Issues and the project board.
 - **Backend (Go):** `backend/` with service entries under `backend/cmd/` (`gateway`, `sim`) and libraries in `backend/internal/` (`sim`, `spatial`, `join`, `transport/ws`).

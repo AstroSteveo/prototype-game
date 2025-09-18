@@ -125,7 +125,7 @@ From the repo root:
 - Spatial math: `backend/internal/spatial`
 - WebSocket transport: `backend/internal/transport/ws`
 - CLI probe: `backend/cmd/wsprobe`
-- Backlog/TDD: GitHub issues, `docs/design/TDD.md`
+- Backlog/TDD: GitHub issues, `docs/architecture/technical-design-document.md`
 
 ## Automation
 

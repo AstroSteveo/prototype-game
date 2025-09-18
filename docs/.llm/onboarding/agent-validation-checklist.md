@@ -63,7 +63,7 @@ Use this checklist to validate that an AI agent can successfully work with the p
 
 - [ ] **No broken references**
   - [ ] No references to non-existent `docs/dev/DEV.md`
-  - [ ] No references to non-existent `docs/design/GDD.md` or `docs/design/TDD.md`
+  - [ ] Documentation references point to correct paths (e.g., `docs/product/vision/game-design-document.md`, `docs/architecture/technical-design-document.md`)
   - [ ] All script paths in documentation are correct
 
 ## Agent Capability Validation
