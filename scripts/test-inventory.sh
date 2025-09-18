@@ -22,7 +22,9 @@ echo
 echo "Testing WebSocket join with inventory data..."
 echo "Expected: join_ack with inventory, equipment, skills, and encumbrance fields"
 echo "---"
-make wsprobe TOKEN="$TOKEN" 2>/dev/null | python3 -m json.tool
+# Capture only the JSON output, filtering out the go run line
+OUTPUT=$(make wsprobe TOKEN="$TOKEN" 2>/dev/null | grep '^{')
+echo "$OUTPUT" | python3 -m json.tool
 echo "---"
 echo
 
