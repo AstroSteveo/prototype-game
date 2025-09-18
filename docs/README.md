@@ -9,7 +9,6 @@ This directory captures the enduring knowledge for the prototype game project. T
 
 ## Architecture & Quality
 - `architecture/technical-design-document.md` — system-level plan for the simulation stack.
-- `architecture/gameplay-analytics-framework.md` — gameplay analytics pipeline design, taxonomy, and rollout plan.
 - `architecture/testing/` — deep dives for advanced load and sharding validation.
 - `architecture/health/` — reusable templates for technical health reviews.
 - `process/adr/` — architectural decision records with the canonical template, peer review guidelines, and recorded ADRs.
