@@ -28,5 +28,6 @@ This directory captures the enduring knowledge for the prototype game project. T
 
 ## LLM Agent Guidance
 - `.llm/AGENTS.md` — onboarding, governance, branching standards, and authoring templates tailored for automation.
+- Use `scripts/agents/validate-onboarding.sh` to verify agent can access all necessary repository resources.
 
 Use this file as the entry point before diving into specific guides. Update it whenever new long-lived documents are added.
