@@ -177,8 +177,8 @@ Key documentation (read these when onboarding):
 - `AGENTS.md` - Authoritative agent/automation instructions
 - `README.md` - Quick start guide
 - `docs/dev/DEV.md` - Detailed developer workflows
-- `docs/design/GDD.md` - Game Design Document
-- `docs/design/TDD.md` - Technical Design Document
+- `docs/product/vision/game-design-document.md` - Game Design Document
+- `docs/architecture/technical-design-document.md` - Technical Design Document
 
 Build and CI:
 - `Makefile` - **Use make targets instead of raw commands to avoid drift**

@@ -2,8 +2,8 @@
 
 This document maps the project vision, design pillars, and user stories from the Game Design Document (GDD) to the technical systems, milestones, and implementation components defined in the Technical Design Document (TDD).
 
-**Last Updated**: 2024-01-10  
-**Next Review**: During roadmap alignment sessions
+**Last Updated**: 2025-01-15  
+**Next Review**: During roadmap alignment sessions (see [ROADMAP_ALIGNMENT_SESSION.md](../sessions/ROADMAP_ALIGNMENT_SESSION.md))
 
 ## Purpose
 
