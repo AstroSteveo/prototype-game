@@ -4,7 +4,7 @@ Design docs:
 - `docs/product/vision/game-design-document.md` — Game Design Document (vision, player experience, scope)
 - `docs/architecture/technical-design-document.md` — Technical Design Document (architecture, sharding plan, milestones)
 - GitHub Issues/Project board — Backlog and progress tracking
-- `docs/dev/DEV.md` — Developer Guide (build, run, tests, Makefile)
+- `docs/development/developer-guide.md` — Developer Guide (build, run, tests, Makefile)
 - `.github/copilot-instructions.md` — GitHub Copilot/AI agent instructions
 
 Quick start (Go backend, local dev):
