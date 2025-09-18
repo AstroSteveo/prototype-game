@@ -21,73 +21,28 @@ This guide reflects the current architecture, tooling, and checks.
 Tip: Prefer using the Makefile targets to keep commands consistent.
 
 ## Getting started (local dev)
-- Build binaries
-  ```bash
-  make build
-  # outputs: backend/bin/{gateway,sim,wsprobe}
-  ```
+For detailed commands and workflows, see the [Developer Guide](../docs/development/developer-guide.md).
 
-- Format and vet (should be clean before committing)
-  ```bash
-  make fmt vet
-  ```
+Quick essentials:
+```bash
+make build              # Build binaries
+make fmt vet            # Format and vet (required before committing)
+make test test-ws       # Run all tests
+make run                # Start services (gateway:8080, sim:8081)
+```
 
-- Run tests
-  ```bash
-  # Unit tests
-  make test
-
-  # WebSocket-inclusive tests (requires -tags ws)
-  make test-ws
-
-  # Optional race-detection variants
-  make test-race
-  make test-ws-race
-  ```
-
-- Run services
-  ```bash
-  make run
-  # Logs: backend/logs/{gateway.log,sim.log}
-  # PIDs: backend/.pids/{gateway.pid,sim.pid}
-  ```
-
-- Health checks
-  ```bash
-  curl http://localhost:8080/healthz
-  curl http://localhost:8081/healthz
-  ```
-
-WebSocket-specific code/tests must be behind the build tag:
+**Important**: WebSocket-specific code/tests must be behind the build tag:
 ```go
 //go:build ws
 ```
 
 ## Validations to try before review
-- Get a dev token and validate
-  ```bash
-  make run
-  TOKEN=$(make login)
-  curl "http://localhost:8080/validate?token=$TOKEN"
-  ```
-
-- Probe WebSocket join
-  ```bash
-  make wsprobe TOKEN="$TOKEN"
-  # Expect a join_ack with player_id, position, cell, config
-  ```
-
-- Probe movement
-  ```bash
-  make wsprobe TOKEN="$TOKEN" MOVE_X=1 MOVE_Z=0
-  # Expect updated position/velocity in subsequent state
-  ```
-
-- End-to-end helpers
-  ```bash
-  make e2e-join
-  make e2e-move
-  ```
+Essential validation commands (detailed workflow in [Developer Guide](../docs/development/developer-guide.md)):
+```bash
+make e2e-join           # End-to-end join test
+make e2e-move           # End-to-end movement test
+TOKEN=$(make login) && make wsprobe TOKEN="$TOKEN"  # Manual WebSocket test
+```
 
 ## Branching model
 - One branch per task/story. Examples:
@@ -114,17 +69,6 @@ WebSocket-specific code/tests must be behind the build tag:
   ```
 - WS-only code and tests must be guarded with `//go:build ws`.
 - PRs that fail formatting, vetting, or tests will not be merged.
-
-## Running services manually
-- Gateway
-  ```bash
-  cd backend && go run ./cmd/gateway -port 8080 -sim localhost:8081
-  ```
-
-- Simulation (with WebSocket support)
-  ```bash
-  cd backend && go run -tags ws ./cmd/sim -port 8081
-  ```
 
 ## Code style and engineering guidelines
 - Use `make fmt vet` before committing; formatting and vetting are enforced.
