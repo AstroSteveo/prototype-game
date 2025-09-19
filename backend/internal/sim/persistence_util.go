@@ -165,7 +165,7 @@ func CreateDefaultPlayerState(playerID string, pos spatial.Vec2) state.PlayerSta
 	inventoryData, err := json.Marshal(inventory)
 	if err != nil {
 		// This should never happen with default inventory, but panic if it does
-		panic(fmt.Sprintf("failed to marshal default inventory: %v", err))
+		panic(fmt.Sprintf("failed to marshal default inventory during player state creation: %v", err))
 	}
 
 	equipmentData, err := json.Marshal(equipment)
