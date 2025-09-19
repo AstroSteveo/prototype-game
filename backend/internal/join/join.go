@@ -56,17 +56,40 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	if !ok || pid == "" {
 		return JoinAck{}, &ErrorMsg{Code: "auth", Message: "invalid token"}
 	}
-	// Load last known state if available (US-501)
+
+	playerMgr := eng.GetPlayerManager()
+	templates := playerMgr.GetAllItemTemplates()
+
+	// Load last known state if available with full persistence data (US-006)
 	pos := spatial.Vec2{}
+	var persistedState *state.PlayerState
+
 	if playerStore != nil {
-		if st, ok, _ := playerStore.Load(ctx, pid); ok {
+		if st, ok, err := playerStore.Load(ctx, pid); ok && err == nil {
 			pos = st.Pos
+			persistedState = &st
 		}
 	}
+
 	eng.AddOrUpdatePlayer(pid, name, pos, spatial.Vec2{})
+
 	// Read player fields via snapshot accessor to avoid data races with the tick loop.
 	snap, _ := eng.GetPlayer(pid)
-	playerMgr := eng.GetPlayerManager()
+
+	// Initialize or restore player data
+	if persistedState != nil {
+		// Restore from persistence including inventory, equipment, and skills
+		if err := sim.DeserializePlayerData(*persistedState, &snap, templates); err != nil {
+			// If deserialization fails, log warning and fall back to defaults
+			// In production, we might want more sophisticated error handling
+			playerMgr.InitializePlayer(&snap)
+		}
+	} else {
+		// New player - initialize with defaults
+		playerMgr.InitializePlayer(&snap)
+	}
+
+	// Ensure all player components are properly initialized
 	if snap.Inventory == nil || snap.Equipment == nil || snap.Skills == nil {
 		playerMgr.InitializePlayer(&snap)
 	}
@@ -91,17 +114,21 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	// Calculate current encumbrance
 	ack.Encumbrance = playerMgr.GetPlayerEncumbrance(&snap)
 
-	// Increment login count and persist immediately (best-effort) for visibility.
+	// Persist updated state immediately (best-effort) for login tracking
 	if playerStore != nil {
-		if st, ok, _ := playerStore.Load(ctx, pid); ok {
-			st.Logins++
-			st.Pos = snap.Pos
-			st.Updated = time.Now()
-			_ = playerStore.Save(ctx, pid, st)
+		if persistedState != nil {
+			// Update existing player record
+			persistedState.Logins++
+			persistedState.Pos = snap.Pos
+			persistedState.Updated = time.Now()
+			_ = playerStore.Save(ctx, pid, *persistedState)
 		} else {
-			_ = playerStore.Save(ctx, pid, state.PlayerState{Pos: snap.Pos, Logins: 1, Updated: time.Now()})
+			// Create new player record with default state
+			newState := sim.CreateDefaultPlayerState(pid, snap.Pos)
+			_ = playerStore.Save(ctx, pid, newState)
 		}
 	}
+
 	return ack, nil
 }
 

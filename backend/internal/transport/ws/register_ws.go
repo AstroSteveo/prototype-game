@@ -237,17 +237,10 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 				log.Printf("ws: disconnecting idle client %s after %v", playerID, idleTimeout)
 				return
 			case <-done:
-				// On disconnect, persist last known position (US-501)
+				// On disconnect, persist last known state including inventory/equipment (US-006)
 				if store != nil {
-					if p, ok := eng.GetPlayer(playerID); ok {
-						// Load existing state to preserve login count
-						currentState, exists, err := store.Load(r.Context(), playerID)
-						logins := 1 // default for new player
-						if err == nil && exists {
-							logins = currentState.Logins
-						}
-						_ = store.Save(r.Context(), playerID, state.PlayerState{Pos: p.Pos, Logins: logins, Updated: time.Now()})
-					}
+					// Request immediate persistence for disconnecting player
+					eng.RequestPlayerDisconnectPersist(r.Context(), playerID)
 				}
 				return
 			case <-activityCh:
