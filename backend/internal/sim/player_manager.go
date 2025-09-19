@@ -31,9 +31,13 @@ func (pm *PlayerManager) GetItemTemplate(id ItemTemplateID) (*ItemTemplate, bool
 	return template, exists
 }
 
-// GetAllItemTemplates returns all registered item templates
+// GetAllItemTemplates returns a copy of all registered item templates
 func (pm *PlayerManager) GetAllItemTemplates() map[ItemTemplateID]*ItemTemplate {
-	return pm.itemTemplates
+	copied := make(map[ItemTemplateID]*ItemTemplate, len(pm.itemTemplates))
+	for k, v := range pm.itemTemplates {
+		copied[k] = v
+	}
+	return copied
 }
 
 // InitializePlayer sets up a new player with default inventory and equipment
