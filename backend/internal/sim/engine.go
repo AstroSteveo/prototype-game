@@ -444,6 +444,32 @@ func (e *Engine) DevSetVelocity(id string, vel spatial.Vec2) bool {
 	return true
 }
 
+// EquipItem equips an item for a player
+func (e *Engine) EquipItem(playerID string, instanceID ItemInstanceID, slot SlotID, now time.Time) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	player, ok := e.players[playerID]
+	if !ok {
+		return fmt.Errorf("player %s not found", playerID)
+	}
+
+	return e.playerMgr.EquipItem(player, instanceID, slot, now)
+}
+
+// UnequipItem unequips an item for a player
+func (e *Engine) UnequipItem(playerID string, slot SlotID, compartment CompartmentType, now time.Time) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	player, ok := e.players[playerID]
+	if !ok {
+		return fmt.Errorf("player %s not found", playerID)
+	}
+
+	return e.playerMgr.UnequipItem(player, slot, compartment, now)
+}
+
 // DevList returns a snapshot list of current players (dev-only helper).
 func (e *Engine) DevList() []Player {
 	e.mu.RLock()

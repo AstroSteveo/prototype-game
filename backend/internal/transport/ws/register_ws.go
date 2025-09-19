@@ -122,9 +122,31 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 				Z float64 `json:"z"`
 			} `json:"intent"`
 		}
+
+		// Equipment command messages
+		type equipMsg struct {
+			Type       string `json:"type"`
+			Seq        int    `json:"seq"`
+			InstanceID string `json:"instance_id"`
+			Slot       string `json:"slot"`
+		}
+
+		type unequipMsg struct {
+			Type        string `json:"type"`
+			Seq         int    `json:"seq"`
+			Slot        string `json:"slot"`
+			Compartment string `json:"compartment,omitempty"` // defaults to backpack if empty
+		}
 		inputs := make(chan inputMsg, 16)
+		equipCmds := make(chan equipMsg, 16)
+		unequipCmds := make(chan unequipMsg, 16)
 		done := make(chan struct{})
 		activityCh := make(chan time.Time, 1)
+
+		// Message sequence tracking for idempotency
+		processedSeqs := make(map[int]bool)
+		seqCleanupTicker := time.NewTicker(30 * time.Second) // Clean old sequences periodically
+		defer seqCleanupTicker.Stop()
 
 		go func() {
 			defer close(done)
@@ -144,19 +166,38 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 				}
 				// Try to decode as input
 				var in inputMsg
-				if err := json.Unmarshal(raw, &in); err != nil {
-					// ignore malformed input
+				if err := json.Unmarshal(raw, &in); err == nil && in.Type == "input" {
+					select {
+					case inputs <- in:
+					default:
+						// drop if backpressured
+					}
 					continue
 				}
-				if in.Type != "input" {
-					// ignore unknown types for now
+
+				// Try to decode as equip command
+				var equipCmd equipMsg
+				if err := json.Unmarshal(raw, &equipCmd); err == nil && equipCmd.Type == "equip" {
+					select {
+					case equipCmds <- equipCmd:
+					default:
+						// drop if backpressured
+					}
 					continue
 				}
-				select {
-				case inputs <- in:
-				default:
-					// drop if backpressured
+
+				// Try to decode as unequip command
+				var unequipCmd unequipMsg
+				if err := json.Unmarshal(raw, &unequipCmd); err == nil && unequipCmd.Type == "unequip" {
+					select {
+					case unequipCmds <- unequipCmd:
+					default:
+						// drop if backpressured
+					}
+					continue
 				}
+
+				// ignore unknown message types
 			}
 		}()
 
@@ -218,6 +259,73 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 				_ = eng.DevSetVelocity(playerID, spatial.Vec2{X: vx, Z: vz})
 				if in.Seq > lastAck {
 					lastAck = in.Seq
+				}
+			case equipCmd := <-equipCmds:
+				// Handle equip command with idempotency check
+				if processedSeqs[equipCmd.Seq] {
+					// Already processed this command, ignore duplicate
+					continue
+				}
+				processedSeqs[equipCmd.Seq] = true
+
+				slotID := sim.SlotID(equipCmd.Slot)
+				instanceID := sim.ItemInstanceID(equipCmd.InstanceID)
+				now := time.Now()
+
+				err := eng.EquipItem(playerID, instanceID, slotID, now)
+				success := err == nil
+
+				// Record metrics
+				metrics.ObserveEquipOperation("equip", success)
+				if err == sim.ErrEquipLocked {
+					metrics.IncEquipCooldownBlocks()
+				}
+
+				sendEquipResult(r.Context(), c, success, "equip", equipCmd.Slot, err)
+
+				if success {
+					// Force inventory and equipment delta on next state update
+					lastInventoryVersion = -1
+					lastEquipmentVersion = -1
+				}
+
+			case unequipCmd := <-unequipCmds:
+				// Handle unequip command with idempotency check
+				if processedSeqs[unequipCmd.Seq] {
+					// Already processed this command, ignore duplicate
+					continue
+				}
+				processedSeqs[unequipCmd.Seq] = true
+
+				slotID := sim.SlotID(unequipCmd.Slot)
+				compartment := sim.CompartmentType(unequipCmd.Compartment)
+				if compartment == "" {
+					compartment = sim.CompartmentBackpack // Default compartment
+				}
+				now := time.Now()
+
+				err := eng.UnequipItem(playerID, slotID, compartment, now)
+				success := err == nil
+
+				// Record metrics
+				metrics.ObserveEquipOperation("unequip", success)
+				if err == sim.ErrEquipLocked {
+					metrics.IncEquipCooldownBlocks()
+				}
+
+				sendEquipResult(r.Context(), c, success, "unequip", unequipCmd.Slot, err)
+
+				if success {
+					// Force inventory and equipment delta on next state update
+					lastInventoryVersion = -1
+					lastEquipmentVersion = -1
+				}
+			case <-seqCleanupTicker.C:
+				// Clean up old processed sequences to prevent memory growth
+				// Keep only sequences from the last 100 messages
+				if len(processedSeqs) > 100 {
+					// Simple cleanup: clear all and start fresh
+					processedSeqs = make(map[int]bool)
 				}
 			case <-ticker.C:
 				// send state with AOI entities
@@ -338,4 +446,62 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// sendError sends an error message to the WebSocket client
+func sendError(ctx context.Context, c *nws.Conn, code, message string) {
+	errorMsg := map[string]any{
+		"type": "error",
+		"data": map[string]any{
+			"code":    code,
+			"message": message,
+		},
+	}
+	errCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	_ = wsjson.Write(errCtx, c, errorMsg)
+}
+
+// sendEquipResult sends an equipment operation result to the client
+func sendEquipResult(ctx context.Context, c *nws.Conn, success bool, operation, slot string, err error) {
+	var message string
+	var code string
+	if success {
+		message = "Equipment operation successful"
+		code = "success"
+	} else {
+		code = "equip_failed"
+		if err != nil {
+			switch err {
+			case sim.ErrIllegalSlot:
+				code = "illegal_slot"
+				message = "Item cannot be equipped to this slot"
+			case sim.ErrSkillGate:
+				code = "skill_gate"
+				message = "Insufficient skill level to equip item"
+			case sim.ErrEquipLocked:
+				code = "equip_locked"
+				message = "Equipment slot is on cooldown"
+			case sim.ErrItemNotFound:
+				code = "item_not_found"
+				message = "Item not found in inventory"
+			default:
+				message = err.Error()
+			}
+		}
+	}
+
+	resultMsg := map[string]any{
+		"type": "equipment_result",
+		"data": map[string]any{
+			"operation": operation,
+			"slot":      slot,
+			"success":   success,
+			"code":      code,
+			"message":   message,
+		},
+	}
+	resultCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	_ = wsjson.Write(resultCtx, c, resultMsg)
 }
