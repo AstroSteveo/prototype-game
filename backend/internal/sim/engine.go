@@ -391,6 +391,47 @@ func (e *Engine) DevSpawn(id, name string, pos spatial.Vec2) *Player {
 	return e.AddOrUpdatePlayer(id, name, pos, spatial.Vec2{})
 }
 
+// DevAddItemToPlayer adds an item to a player's inventory (dev-only helper).
+func (e *Engine) DevAddItemToPlayer(playerID string, templateID ItemTemplateID, quantity int, compartment CompartmentType) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	player, ok := e.players[playerID]
+	if !ok {
+		return fmt.Errorf("player %s not found", playerID)
+	}
+
+	// Generate unique instance ID
+	instanceID := ItemInstanceID(fmt.Sprintf("%s_%d_%d", templateID, quantity, time.Now().UnixNano()))
+
+	instance := ItemInstance{
+		InstanceID: instanceID,
+		TemplateID: templateID,
+		Quantity:   quantity,
+		Durability: 1.0,
+	}
+
+	return e.playerMgr.AddItemToInventory(player, instance, compartment)
+}
+
+// DevGivePlayerSkill gives a player a skill level (dev-only helper).
+func (e *Engine) DevGivePlayerSkill(playerID string, skill string, level int) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	player, ok := e.players[playerID]
+	if !ok {
+		return fmt.Errorf("player %s not found", playerID)
+	}
+
+	if player.Skills == nil {
+		player.Skills = make(map[string]int)
+	}
+	player.Skills[skill] = level
+	player.SkillsVersion++
+	return nil
+}
+
 // DevSetVelocity sets a player's velocity (dev-only helper).
 func (e *Engine) DevSetVelocity(id string, vel spatial.Vec2) bool {
 	e.mu.Lock()

@@ -34,6 +34,11 @@ type Player struct {
 	Inventory *Inventory     `json:"inventory"`
 	Equipment *Equipment     `json:"equipment"`
 	Skills    map[string]int `json:"skills"` // skill_name -> level
+
+	// Delta tracking for efficient state updates
+	InventoryVersion int64 `json:"-"` // Increment when inventory changes
+	EquipmentVersion int64 `json:"-"` // Increment when equipment changes
+	SkillsVersion    int64 `json:"-"` // Increment when skills change
 }
 
 type Config struct {
