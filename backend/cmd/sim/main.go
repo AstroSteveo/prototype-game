@@ -220,23 +220,16 @@ func main() {
 
 		// Get all available templates
 		templates := []map[string]interface{}{}
-		testTemplates := []sim.ItemTemplateID{
-			"sword_iron", "shield_wood", "armor_leather", "potion_health", "anvil_iron", "rock_small",
+		for _, template := range playerMgr.GetAllItemTemplates() {
+			templates = append(templates, map[string]interface{}{
+				"id":           template.ID,
+				"display_name": template.DisplayName,
+				"weight":       template.Weight,
+				"bulk":         template.Bulk,
+				"damage_type":  template.DamageType,
+				"skill_req":    template.SkillReq,
+			})
 		}
-
-		for _, templateID := range testTemplates {
-			if template, exists := playerMgr.GetItemTemplate(templateID); exists {
-				templates = append(templates, map[string]interface{}{
-					"id":           template.ID,
-					"display_name": template.DisplayName,
-					"weight":       template.Weight,
-					"bulk":         template.Bulk,
-					"damage_type":  template.DamageType,
-					"skill_req":    template.SkillReq,
-				})
-			}
-		}
-
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"templates":    templates,
 			"compartments": []string{"backpack", "belt", "craft_bag"},
