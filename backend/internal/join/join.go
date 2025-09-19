@@ -102,7 +102,7 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	// Ensure all player components are properly initialized if this is a new player
 	if persistedState == nil && (snap.Inventory == nil || snap.Equipment == nil || snap.Skills == nil) {
 		playerMgr.InitializePlayer(&snap)
-		// Note: For new players, initialization is handled in AddOrUpdatePlayer
+		// Note: For new players, AddOrUpdatePlayer creates the record, but full initialization of components is performed by InitializePlayer
 	}
 
 	cfg := eng.GetConfig()
