@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -290,20 +292,36 @@ func parseFloat(s string, def float64) float64 {
 
 // validateConfig validates configuration parameters to prevent divide-by-zero and other issues
 func validateConfig(cellSize, aoiRadius float64, tickHz, snapshotHz int, hysteresis float64) error {
+	// Sentinel error so callers can detect invalid-config programmatically.
+	var ErrInvalidConfig = errors.New("invalid config")
+
+	// Reject non-finite floats explicitly.
+	if math.IsNaN(cellSize) || math.IsInf(cellSize, 0) {
+		return fmt.Errorf("%w: cell size must be finite and > 0, got %v", ErrInvalidConfig, cellSize)
+	}
 	if cellSize <= 0 {
-		return fmt.Errorf("cell size must be > 0, got %.2f", cellSize)
+		return fmt.Errorf("%w: cell size must be > 0, got %.2f", ErrInvalidConfig, cellSize)
+	}
+
+	if math.IsNaN(aoiRadius) || math.IsInf(aoiRadius, 0) {
+		return fmt.Errorf("%w: AOI radius must be finite and >= 0, got %v", ErrInvalidConfig, aoiRadius)
 	}
 	if aoiRadius < 0 {
-		return fmt.Errorf("AOI radius must be >= 0, got %.2f", aoiRadius)
+		return fmt.Errorf("%w: AOI radius must be >= 0, got %.2f", ErrInvalidConfig, aoiRadius)
 	}
+
 	if tickHz < 1 {
-		return fmt.Errorf("tick rate must be >= 1 Hz, got %d", tickHz)
+		return fmt.Errorf("%w: tick rate must be >= 1 Hz, got %d", ErrInvalidConfig, tickHz)
 	}
 	if snapshotHz < 1 {
-		return fmt.Errorf("snapshot rate must be >= 1 Hz, got %d", snapshotHz)
+		return fmt.Errorf("%w: snapshot rate must be >= 1 Hz, got %d", ErrInvalidConfig, snapshotHz)
+	}
+
+	if math.IsNaN(hysteresis) || math.IsInf(hysteresis, 0) {
+		return fmt.Errorf("%w: handover hysteresis must be finite and >= 0, got %v", ErrInvalidConfig, hysteresis)
 	}
 	if hysteresis < 0 {
-		return fmt.Errorf("handover hysteresis must be >= 0, got %.2f", hysteresis)
+		return fmt.Errorf("%w: handover hysteresis must be >= 0, got %.2f", ErrInvalidConfig, hysteresis)
 	}
 	return nil
 }

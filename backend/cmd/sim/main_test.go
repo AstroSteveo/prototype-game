@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
@@ -93,6 +94,36 @@ func TestValidateConfig(t *testing.T) {
 			snapshotHz:  1,
 			hysteresis:  0.0,
 			expectError: false,
+		},
+		{
+			name:           "cellSize is NaN",
+			cellSize:       math.NaN(),
+			aoiRadius:      0.0,
+			tickHz:         1,
+			snapshotHz:     1,
+			hysteresis:     0.0,
+			expectError:    true,
+			errorSubstring: "cell size",
+		},
+		{
+			name:           "aoiRadius is +Inf",
+			cellSize:       1.0,
+			aoiRadius:      math.Inf(1),
+			tickHz:         1,
+			snapshotHz:     1,
+			hysteresis:     0.0,
+			expectError:    true,
+			errorSubstring: "AOI radius",
+		},
+		{
+			name:           "hysteresis is -Inf",
+			cellSize:       1.0,
+			aoiRadius:      0.0,
+			tickHz:         1,
+			snapshotHz:     1,
+			hysteresis:     math.Inf(-1),
+			expectError:    true,
+			errorSubstring: "hysteresis",
 		},
 	}
 
