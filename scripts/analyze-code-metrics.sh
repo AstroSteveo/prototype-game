@@ -44,7 +44,7 @@ test_go_lines=$(find . -name "*_test.go" -exec cat {} \; | wc -l)
 echo "Production Go code: $prod_go_lines lines"
 echo "Test Go code: $test_go_lines lines"
 
-total_prod=$((prod_go_lines + js_lines + sh_lines))
+total_prod=$((prod_go_lines + js_lines))
 echo "Total production code: $total_prod lines"
 echo "Total test code: $test_go_lines lines"
 
