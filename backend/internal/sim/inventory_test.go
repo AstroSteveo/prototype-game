@@ -248,6 +248,42 @@ func TestInventory_BulkLimits(t *testing.T) {
 	}
 }
 
+func TestInventory_CanAddItemCountsExistingWeight(t *testing.T) {
+	inv := NewInventory()
+	inv.WeightLimit = 15.0
+
+	heavyTemplate := &ItemTemplate{ID: "heavy_item", Weight: 12.0, Bulk: 1}
+	lightTemplate := &ItemTemplate{ID: "light_item", Weight: 5.0, Bulk: 1}
+
+	heavyInstance := ItemInstance{InstanceID: "heavy1", TemplateID: heavyTemplate.ID, Quantity: 1, Durability: 1.0}
+	if err := inv.AddItem(heavyInstance, CompartmentBackpack, heavyTemplate); err != nil {
+		t.Fatalf("Add heavy item: %v", err)
+	}
+
+	lightInstance := ItemInstance{InstanceID: "light1", TemplateID: lightTemplate.ID, Quantity: 1, Durability: 1.0}
+	if err := inv.AddItem(lightInstance, CompartmentBackpack, lightTemplate); err != ErrExceedsWeight {
+		t.Fatalf("expected ErrExceedsWeight, got %v", err)
+	}
+}
+
+func TestInventory_CanAddItemCountsExistingBulk(t *testing.T) {
+	inv := NewInventory()
+	inv.CompartmentCaps[CompartmentBelt] = 3
+
+	firstTemplate := &ItemTemplate{ID: "first_item", Weight: 1.0, Bulk: 2}
+	secondTemplate := &ItemTemplate{ID: "second_item", Weight: 1.0, Bulk: 2}
+
+	firstInstance := ItemInstance{InstanceID: "first1", TemplateID: firstTemplate.ID, Quantity: 1, Durability: 1.0}
+	if err := inv.AddItem(firstInstance, CompartmentBelt, firstTemplate); err != nil {
+		t.Fatalf("Add first item: %v", err)
+	}
+
+	secondInstance := ItemInstance{InstanceID: "second1", TemplateID: secondTemplate.ID, Quantity: 1, Durability: 1.0}
+	if err := inv.AddItem(secondInstance, CompartmentBelt, secondTemplate); err != ErrExceedsBulk {
+		t.Fatalf("expected ErrExceedsBulk, got %v", err)
+	}
+}
+
 func TestInventory_ComputeEncumbrance(t *testing.T) {
 	inv := NewInventory()
 	inv.WeightLimit = 100.0

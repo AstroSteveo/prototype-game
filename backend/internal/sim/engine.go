@@ -326,6 +326,16 @@ func (e *Engine) AddOrUpdatePlayer(id, name string, pos spatial.Vec2, vel spatia
 	} else {
 		// update
 		pl.Pos, pl.Vel, pl.Name = pos, vel, name
+		if pl.Inventory == nil {
+			pl.Inventory = NewInventory()
+		}
+		pl.Inventory.SetTemplateCatalog(e.playerMgr.itemTemplates)
+		if pl.Equipment == nil {
+			pl.Equipment = NewEquipment()
+		}
+		if pl.Skills == nil {
+			pl.Skills = make(map[string]int)
+		}
 		if pl.OwnedCell != key {
 			// immediate place correction
 			e.moveEntityLocked(pl, pl.OwnedCell, key)

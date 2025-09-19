@@ -66,6 +66,10 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	eng.AddOrUpdatePlayer(pid, name, pos, spatial.Vec2{})
 	// Read player fields via snapshot accessor to avoid data races with the tick loop.
 	snap, _ := eng.GetPlayer(pid)
+	playerMgr := eng.GetPlayerManager()
+	if snap.Inventory == nil || snap.Equipment == nil || snap.Skills == nil {
+		playerMgr.InitializePlayer(&snap)
+	}
 
 	cfg := eng.GetConfig()
 	ack := JoinAck{
@@ -85,7 +89,6 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 	ack.Skills = snap.Skills
 
 	// Calculate current encumbrance
-	playerMgr := eng.GetPlayerManager()
 	ack.Encumbrance = playerMgr.GetPlayerEncumbrance(&snap)
 
 	// Increment login count and persist immediately (best-effort) for visibility.

@@ -2,6 +2,7 @@ package sim
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -75,6 +76,7 @@ type Inventory struct {
 	CompartmentCaps map[CompartmentType]int `json:"compartment_caps"` // Bulk limits per compartment
 	WeightLimit     float64                 `json:"weight_limit"`
 	itemIndex       map[ItemInstanceID]int  // Index for fast lookup
+	templateCatalog map[ItemTemplateID]*ItemTemplate
 }
 
 // NewInventory creates a new inventory with default capacities
@@ -90,6 +92,40 @@ func NewInventory() *Inventory {
 		itemIndex:   make(map[ItemInstanceID]int),
 	}
 	return inv
+}
+
+// SetTemplateCatalog wires in the authoritative template catalog for lookups.
+func (inv *Inventory) SetTemplateCatalog(catalog map[ItemTemplateID]*ItemTemplate) {
+	inv.templateCatalog = catalog
+	if catalog == nil {
+		return
+	}
+	for i := range inv.Items {
+		if inv.Items[i].template == nil {
+			if template, ok := catalog[inv.Items[i].Instance.TemplateID]; ok {
+				inv.Items[i].template = template
+			}
+		}
+	}
+}
+
+func (inv *Inventory) resolveTemplate(item *InventoryItem, templates map[ItemTemplateID]*ItemTemplate) *ItemTemplate {
+	if item.template != nil {
+		return item.template
+	}
+	if templates != nil {
+		if template, ok := templates[item.Instance.TemplateID]; ok {
+			item.template = template
+			return template
+		}
+	}
+	if inv.templateCatalog != nil {
+		if template, ok := inv.templateCatalog[item.Instance.TemplateID]; ok {
+			item.template = template
+			return template
+		}
+	}
+	return nil
 }
 
 // rebuildIndex rebuilds the item lookup index
@@ -127,11 +163,13 @@ func (inv *Inventory) GetCompartmentContents(compartment CompartmentType) []Inve
 // GetCompartmentBulk returns the current bulk used in a compartment
 func (inv *Inventory) GetCompartmentBulk(compartment CompartmentType, templates map[ItemTemplateID]*ItemTemplate) int {
 	bulk := 0
-	for _, item := range inv.Items {
-		if item.Compartment == compartment {
-			if template, exists := templates[item.Instance.TemplateID]; exists {
-				bulk += template.Bulk * item.Instance.Quantity
-			}
+	for i := range inv.Items {
+		item := &inv.Items[i]
+		if item.Compartment != compartment {
+			continue
+		}
+		if template := inv.resolveTemplate(item, templates); template != nil {
+			bulk += template.Bulk * item.Instance.Quantity
 		}
 	}
 	return bulk
@@ -140,8 +178,9 @@ func (inv *Inventory) GetCompartmentBulk(compartment CompartmentType, templates 
 // GetTotalWeight returns the total weight of all items
 func (inv *Inventory) GetTotalWeight(templates map[ItemTemplateID]*ItemTemplate) float64 {
 	weight := 0.0
-	for _, item := range inv.Items {
-		if template, exists := templates[item.Instance.TemplateID]; exists {
+	for i := range inv.Items {
+		item := &inv.Items[i]
+		if template := inv.resolveTemplate(item, templates); template != nil {
 			weight += template.Weight * float64(item.Instance.Quantity)
 		}
 	}
@@ -155,15 +194,24 @@ func (inv *Inventory) CanAddItem(instance ItemInstance, compartment CompartmentT
 		return ErrDuplicateInstance
 	}
 
+	if template == nil {
+		if inv.templateCatalog != nil {
+			template = inv.templateCatalog[instance.TemplateID]
+		}
+		if template == nil {
+			return fmt.Errorf("unknown item template: %s", instance.TemplateID)
+		}
+	}
+
 	// Check weight limit
-	totalWeight := inv.GetTotalWeight(map[ItemTemplateID]*ItemTemplate{template.ID: template})
+	totalWeight := inv.GetTotalWeight(nil)
 	newWeight := template.Weight * float64(instance.Quantity)
 	if totalWeight+newWeight > inv.WeightLimit {
 		return ErrExceedsWeight
 	}
 
 	// Check compartment bulk limit
-	currentBulk := inv.GetCompartmentBulk(compartment, map[ItemTemplateID]*ItemTemplate{template.ID: template})
+	currentBulk := inv.GetCompartmentBulk(compartment, nil)
 	newBulk := template.Bulk * instance.Quantity
 	if limit, exists := inv.CompartmentCaps[compartment]; exists {
 		if currentBulk+newBulk > limit {
@@ -183,6 +231,7 @@ func (inv *Inventory) AddItem(instance ItemInstance, compartment CompartmentType
 	invItem := InventoryItem{
 		Instance:    instance,
 		Compartment: compartment,
+		template:    template,
 	}
 
 	inv.Items = append(inv.Items, invItem)
