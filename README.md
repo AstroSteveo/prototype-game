@@ -9,14 +9,14 @@ A server-authoritative multiplayer simulation backend featuring:
 
 > Canonical milestone & risk source: [docs/product/roadmap/roadmap.md](docs/product/roadmap/roadmap.md)
 
-Last Updated: 2025-09-18
+Last Updated: 2025-09-19
 
 ---
 
 <!-- ai-index
 version: 0.1
 project: prototype-game
-status_date: 2025-09-18
+status_date: 2025-09-19
 areas:
   simulation_core: complete
   gateway_auth: baseline
@@ -62,15 +62,16 @@ gantt
     Local Handover + Cells (M2)    :done,    m2, 2025-02-01, 30d
     Gateway + Auth (M3)            :done,    m3, 2025-03-05, 21d
     WS Transport Scaffold (M4)     :done,    m4, 2025-04-01, 28d
+    Persistence Foundations (M5)   :done,    m5, 2025-05-01, 60d
+    Equipment Systems (M6)         :done,    m6, 2025-07-01, 45d
+    Inventory & Skills (M7)        :done,    m7, 2025-08-15, 30d
 
     section In Progress
-    Persistence Foundations (M5)   :active,  m5a, 2025-05-01, 75d
-    State Durability & Replay      :        m5b, after m5a, 45d
+    Client Enablement (M8)         :active,  m8, 2025-09-01, 45d
 
     section Upcoming
-    Combat Systems (M6)            :        m6c, after m5b, 45d
-    Equipment & Items (M6)         :        m6e, after m6c, 30d
-    MVP Loop Hardening (M7)        :milestone, m7, after m6e, 0d
+    Visual Client (M9)             :        m9, after m8, 60d
+    MVP Loop Hardening            :milestone, mvp, after m9, 0d
 ```
 
 ---
@@ -84,7 +85,7 @@ gantt
 - 🗂️ **Game Design / Vision**: [docs/product/vision/game-design-document.md](docs/product/vision/game-design-document.md)
 - 📝 **Latest Roadmap Meeting Outcomes**: [Issue #109](https://github.com/AstroSteveo/prototype-game/issues/109)
 - 🧬 **ADRs**: [docs/process/adr/](docs/process/adr/)
-- 🤖 **Copilot / Agent Guidance**: [.github/copilot-instructions.md](.github/copilot-instructions.md)
+- 🤖 **Copilot / Agent Guidance**: [.github/instructions/](.github/instructions/) - Specification-driven workflow and task implementation guides
 - 📋 **Project Analysis**: [docs/analysis/](docs/analysis/) - Comprehensive system analysis and discovery
 - 🎯 **Next Steps**: [docs/product/roadmap/next-steps-analysis.md](docs/product/roadmap/next-steps-analysis.md)
 
@@ -163,11 +164,11 @@ Protocol will expand with: state deltas, movement/action submission, debug strea
 
 ---
 
-## 🧱 Persistence (M5 – In Progress)
-Objectives: durable entity/world state, snapshot + journal replay, deterministic recovery, schema versioning. See roadmap for acceptance criteria.
+## 🧱 Persistence (M5 – Complete)
+Implemented: durable entity/world state, PostgreSQL integration with optimistic locking, comprehensive equipment/inventory persistence, state versioning. Fully operational with WebSocket state synchronization.
 
-## ⚔️ Combat & Equipment (M6 – Upcoming)
-Planned: authoritative action resolution, component-based stats, deterministic ordering, replay validation. Designs remain provisional.
+## ⚔️ Equipment & Inventory (M6-M7 – Complete)
+Implemented: comprehensive equipment system with slots, cooldowns, skill requirements, encumbrance; multi-compartment inventory system; skill progression tracking; real-time WebSocket synchronization. Ready for client integration.
 
 ---
 

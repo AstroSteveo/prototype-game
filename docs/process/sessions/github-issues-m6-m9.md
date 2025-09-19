@@ -37,8 +37,8 @@ Implement the core equipment system foundation including equipment slots, basic 
 - None (foundation system)
 
 ### Related Docs
-- [Technical Design Document](../docs/architecture/technical-design-document.md) - Equipment System section
-- [Game Design Document](../docs/product/vision/game-design-document.md) - Meaningful Loadouts pillar
+- [Technical Design Document](../../architecture/technical-design-document.md) - Equipment System section
+- [Game Design Document](../../product/vision/game-design-document.md) - Meaningful Loadouts pillar
 
 ---
 
@@ -76,8 +76,8 @@ Implement skill progression system with XP pipeline, skill requirements for equi
 - **M6 Equipment Foundation** - Required for skill-gated equipment
 
 ### Related Docs
-- [Technical Design Document](../docs/architecture/technical-design-document.md) - Skill Progression section
-- [VRTM](../docs/process/traceability/VRTM.md) - Skill progression gaps
+- [Technical Design Document](../../architecture/technical-design-document.md) - Skill Progression section
+- [VRTM](../traceability/VRTM.md) - Skill progression gaps
 
 ---
 
@@ -116,8 +116,8 @@ Implement targeting system with difficulty display and basic combat resolution u
 - **M7 Skill Progression** - Required for skill-based combat effectiveness
 
 ### Related Docs
-- [Game Design Document](../docs/product/vision/game-design-document.md) - Targeting user stories
-- [Technical Design Document](../docs/architecture/technical-design-document.md) - Combat system design
+- [Game Design Document](../../product/vision/game-design-document.md) - Targeting user stories
+- [Technical Design Document](../../architecture/technical-design-document.md) - Combat system design
 
 ---
 
@@ -157,8 +157,8 @@ Final integration phase combining equipment, skills, and combat systems with UI 
 - **M8 Targeting & Combat** - Combat system completed
 
 ### Related Docs
-- [Developer Guide](../docs/development/developer-guide.md) - Performance testing procedures
-- [Roadmap](../docs/product/roadmap/roadmap.md) - Success metrics for M9
+- [Developer Guide](../../development/developer-guide.md) - Performance testing procedures
+- [Roadmap](../../product/roadmap/roadmap.md) - Success metrics for M9
 
 ---
 
