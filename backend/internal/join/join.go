@@ -86,10 +86,10 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 				playerMgr.InitializePlayer(&snap)
 				// Attempt to preserve non-corrupted fields from persistedState
 				restored := state.PlayerState{
-					Pos:       snap.Pos,
-					Inventory: persistedState.Inventory,
-					Equipment: persistedState.Equipment,
-					Skills:    persistedState.Skills,
+					Pos:           snap.Pos,
+					InventoryData: persistedState.InventoryData,
+					EquipmentData: persistedState.EquipmentData,
+					SkillsData:    persistedState.SkillsData,
 				}
 				eng.RestorePlayerState(pid, restored, templates)
 			}
