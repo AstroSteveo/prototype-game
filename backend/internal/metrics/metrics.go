@@ -12,13 +12,15 @@ import (
 // Package-level registry and metric instruments. Call Init() before use.
 
 var (
-	registry              *prometheus.Registry
-	tickTimeMsHist        prometheus.Histogram
-	snapshotBytesHist     prometheus.Histogram
-	entitiesInAOIHist     prometheus.Histogram
-	handoverLatencyMsHist prometheus.Histogram
-	wsConnectedGauge      prometheus.Gauge
-	handoversTotalCounter prometheus.Counter
+	registry               *prometheus.Registry
+	tickTimeMsHist         prometheus.Histogram
+	snapshotBytesHist      prometheus.Histogram
+	entitiesInAOIHist      prometheus.Histogram
+	handoverLatencyMsHist  prometheus.Histogram
+	wsConnectedGauge       prometheus.Gauge
+	handoversTotalCounter  prometheus.Counter
+	equipOperationsCounter *prometheus.CounterVec
+	equipCooldownCounter   prometheus.Counter
 
 	initOnce sync.Once
 )
@@ -68,6 +70,21 @@ func ensureInit() {
 			Help:      "Total handover events processed.",
 		})
 
+		equipOperationsCounter = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "sim",
+				Name:      "equip_operations_total",
+				Help:      "Total equipment operations processed.",
+			},
+			[]string{"operation", "result"}, // operation: equip/unequip, result: success/failed
+		)
+
+		equipCooldownCounter = prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: "sim",
+			Name:      "equip_cooldown_blocks_total",
+			Help:      "Total equipment operations blocked by cooldown.",
+		})
+
 		registry.MustRegister(
 			tickTimeMsHist,
 			snapshotBytesHist,
@@ -75,6 +92,8 @@ func ensureInit() {
 			handoverLatencyMsHist,
 			wsConnectedGauge,
 			handoversTotalCounter,
+			equipOperationsCounter,
+			equipCooldownCounter,
 		)
 	})
 }
@@ -129,4 +148,20 @@ func DecWSConnected() {
 func IncHandovers() {
 	ensureInit()
 	handoversTotalCounter.Inc()
+}
+
+// ObserveEquipOperation records an equipment operation (equip/unequip) and its result.
+func ObserveEquipOperation(operation string, success bool) {
+	ensureInit()
+	result := "success"
+	if !success {
+		result = "failed"
+	}
+	equipOperationsCounter.WithLabelValues(operation, result).Inc()
+}
+
+// IncEquipCooldownBlocks increments the counter for operations blocked by cooldown.
+func IncEquipCooldownBlocks() {
+	ensureInit()
+	equipCooldownCounter.Inc()
 }

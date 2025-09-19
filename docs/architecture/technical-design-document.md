@@ -166,16 +166,73 @@ if cellOf(player.pos) != player.ownedCell:
   - `target_select { entity_id }`
   - `ability_use { stanza_id, target_id?, mode }`
   - `inventory_move { instance_id, from, to }`
+  - `equip { seq, instance_id, slot }`
+  - `unequip { seq, slot, compartment? }`
 - Server→Client
   - `join_ack { player_id, pos, cell, config, inventory, equipment, skills }`
   - `state { tick, entities: [ { id, type, pos, vel, yaw, name?, level_band? } ], removals: [id] }`
   - `inventory_update { add: [...], remove: [...], encumbrance }`
   - `equipment_update { slot, item?, stats }`
+  - `equipment_result { operation, slot, success, code, message }`
   - `target_update { id, name, title, vitals, difficulty_color }`
   - `skill_progress { skill_id, xp, rank, unlocked }`
   - `handover { from_cell, to_cell }`
   - `telemetry { rtt, tick_rate }`
   - `error { code, message }`
+
+### Equipment Operations (US-005)
+Equipment commands support equipping and unequipping items with validation and cooldown enforcement:
+
+#### Equip Command
+```json
+{
+  "type": "equip",
+  "seq": 123,
+  "instance_id": "sword_001",
+  "slot": "main_hand"
+}
+```
+- `seq`: Sequence number for idempotency (required)
+- `instance_id`: ID of item instance in inventory to equip
+- `slot`: Target equipment slot (`main_hand`, `off_hand`, `chest`, `legs`, `feet`, `head`)
+
+#### Unequip Command
+```json
+{
+  "type": "unequip", 
+  "seq": 124,
+  "slot": "main_hand",
+  "compartment": "backpack"
+}
+```
+- `seq`: Sequence number for idempotency (required)
+- `slot`: Equipment slot to clear
+- `compartment`: Inventory compartment to place item (optional, defaults to `backpack`)
+
+#### Equipment Result Response
+```json
+{
+  "type": "equipment_result",
+  "data": {
+    "operation": "equip",
+    "slot": "main_hand", 
+    "success": true,
+    "code": "success",
+    "message": "Equipment operation successful"
+  }
+}
+```
+
+#### Error Codes
+- `success`: Operation completed successfully
+- `illegal_slot`: Item cannot be equipped to specified slot (slot mask validation failed)
+- `skill_gate`: Player lacks required skill levels for item
+- `equip_locked`: Equipment slot is on cooldown from recent equipment change
+- `item_not_found`: Specified item instance not found in player inventory
+- `equip_failed`: Generic equipment failure
+
+#### Idempotency
+Equipment commands use sequence numbers to prevent duplicate processing. Commands with previously processed sequence numbers are silently ignored.
 
 ### Join Handler (Transport-Agnostic)
 - Implement join logic as a pure function separate from the WebSocket transport to enable unit testing without a socket.
