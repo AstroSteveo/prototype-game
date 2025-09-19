@@ -18,7 +18,7 @@ The prototype-game codebase contains **11,236 total lines of source code** acros
 
 #### By Code Type:
 - **Production Code**: 5,086 lines (45.3%)
-- **Test Code**: 6,873 lines (61.2%)
+- **Test Code**: 5,873 lines (52.3%)
 - **Utility Scripts**: 277 lines (2.5%)
 
 ### File Distribution
