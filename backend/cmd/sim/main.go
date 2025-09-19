@@ -87,7 +87,19 @@ func main() {
 	// Simple JSON metrics for development/observability (prep for US-NF1)
 	mux.HandleFunc("/metrics.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(eng.MetricsSnapshot())
+		metrics := eng.MetricsSnapshot()
+		// Add persistence metrics to response
+		persistMetrics := eng.GetPersistenceMetrics()
+		response := map[string]interface{}{
+			"simulation":  metrics,
+			"persistence": persistMetrics,
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	})
+	// Separate persistence metrics endpoint for detailed monitoring
+	mux.HandleFunc("/persistence/metrics.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(eng.GetPersistenceMetrics())
 	})
 	// Prometheus metrics endpoint
 	mux.Handle("/metrics", metrics.Handler())
@@ -109,6 +121,15 @@ func main() {
 		log.Printf("sim: using in-memory store")
 	}
 	join.SetStore(st)
+
+	// Configure persistence manager for inventory/equipment persistence (US-006)
+	eng.SetPersistenceStore(st)
+	// Context for persistence operations
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	eng.StartPersistence(ctx)
+	log.Printf("sim: persistence manager started")
+
 	auth := join.NewHTTPAuth(*gatewayURL)
 	transportws.RegisterWithStoreAndDevMode(mux, "/ws", auth, eng, st, *devMode)
 	// Dev endpoints to poke the engine without a client transport yet.
@@ -252,25 +273,29 @@ func main() {
 	<-sigCh
 	log.Printf("sim: shutting down...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer shutdownCancel()
 
 	// Stop periodic flushing if using file store
 	if storeStopCh != nil {
 		close(storeStopCh)
 	}
 
+	// Stop persistence manager to ensure all pending saves complete
+	eng.StopPersistence()
+	log.Printf("sim: persistence manager stopped")
+
 	// Perform graceful shutdown of file store
 	if fileStore, ok := st.(*state.FileStore); ok {
-		if err := fileStore.GracefulShutdown(ctx); err != nil {
+		if err := fileStore.GracefulShutdown(shutdownCtx); err != nil {
 			log.Printf("sim: file store shutdown error: %v", err)
 		} else {
 			log.Printf("sim: file store saved successfully")
 		}
 	}
 
-	_ = srv.Shutdown(ctx)
-	eng.Stop(ctx)
+	_ = srv.Shutdown(shutdownCtx)
+	eng.Stop(shutdownCtx)
 	log.Printf("sim: stopped")
 }
 

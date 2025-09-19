@@ -12,11 +12,17 @@ import (
 	"prototype-game/backend/internal/spatial"
 )
 
-// PlayerState captures minimal persistent state for a player.
+// PlayerState captures persistent state for a player including inventory and equipment.
 type PlayerState struct {
-	Pos     spatial.Vec2 `json:"pos"`
-	Logins  int          `json:"logins"`
-	Updated time.Time    `json:"updated"`
+	Pos               spatial.Vec2    `json:"pos"`
+	Logins            int             `json:"logins"`
+	Updated           time.Time       `json:"updated"`
+	Version           int64           `json:"version"`            // For optimistic locking
+	InventoryData     json.RawMessage `json:"inventory_data"`     // Serialized inventory state
+	EquipmentData     json.RawMessage `json:"equipment_data"`     // Serialized equipment state
+	SkillsData        json.RawMessage `json:"skills_data"`        // Serialized skills state
+	CooldownTimers    json.RawMessage `json:"cooldown_timers"`    // Serialized equipment cooldowns
+	EncumbranceConfig json.RawMessage `json:"encumbrance_config"` // Weight/bulk limits
 }
 
 // Store is a minimal interface for persisting player state.

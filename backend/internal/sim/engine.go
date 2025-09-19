@@ -12,6 +12,7 @@ import (
 
 	"prototype-game/backend/internal/metrics"
 	"prototype-game/backend/internal/spatial"
+	"prototype-game/backend/internal/state"
 )
 
 type Engine struct {
@@ -25,6 +26,8 @@ type Engine struct {
 	stoppedCh chan struct{}
 	// Player management with inventory/equipment
 	playerMgr *PlayerManager
+	// Persistence management for inventory/equipment/skills
+	persistMgr *PersistenceManager
 	// lifecycle guards
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -550,4 +553,71 @@ func (e *Engine) MetricsSnapshot() Metrics {
 		avg = float64(ent) / float64(q)
 	}
 	return Metrics{Handovers: ho, AOIQueries: q, AOIEntitiesTotal: ent, AOIAvgEntities: avg}
+}
+
+// SetPersistenceStore configures the persistence manager with a store
+func (e *Engine) SetPersistenceStore(store state.Store) {
+	e.persistMgr = NewPersistenceManager(store, e)
+}
+
+// StartPersistence begins the persistence manager (should be called after Start)
+func (e *Engine) StartPersistence(ctx context.Context) {
+	if e.persistMgr != nil {
+		e.persistMgr.Start(ctx)
+	}
+}
+
+// StopPersistence gracefully shuts down the persistence manager
+func (e *Engine) StopPersistence() {
+	if e.persistMgr != nil {
+		e.persistMgr.Stop()
+	}
+}
+
+// RequestPlayerCheckpoint requests a checkpoint save for a player
+func (e *Engine) RequestPlayerCheckpoint(ctx context.Context, playerID string) {
+	if e.persistMgr != nil {
+		e.persistMgr.RequestCheckpoint(ctx, playerID)
+	}
+}
+
+// RequestPlayerDisconnectPersist immediately saves player data on disconnect
+func (e *Engine) RequestPlayerDisconnectPersist(ctx context.Context, playerID string) {
+	if e.persistMgr != nil {
+		e.persistMgr.RequestDisconnectPersist(ctx, playerID)
+	}
+}
+
+// RestorePlayerState applies persistent state to an existing player record
+func (e *Engine) RestorePlayerState(playerID string, persistedState state.PlayerState, templates map[ItemTemplateID]*ItemTemplate) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	player, ok := e.players[playerID]
+	if !ok {
+		return fmt.Errorf("player %s not found", playerID)
+	}
+
+	// Apply persistent state to the authoritative player record
+	return DeserializePlayerData(persistedState, player, templates)
+}
+
+// GetAllConnectedPlayerIDs returns IDs of all currently connected players
+func (e *Engine) GetAllConnectedPlayerIDs() []string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	playerIDs := make([]string, 0, len(e.players))
+	for id := range e.players {
+		playerIDs = append(playerIDs, id)
+	}
+	return playerIDs
+}
+
+// GetPersistenceMetrics returns persistence-related metrics
+func (e *Engine) GetPersistenceMetrics() map[string]interface{} {
+	if e.persistMgr != nil {
+		return e.persistMgr.GetMetrics()
+	}
+	return map[string]interface{}{}
 }
