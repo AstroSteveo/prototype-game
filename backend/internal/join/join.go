@@ -80,13 +80,18 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 		if err := eng.RestorePlayerState(pid, *persistedState, templates); err != nil {
 			// If deserialization fails, log warning and fall back to defaults
 			log.Printf("join: failed to deserialize player state for %s: %v", pid, err)
+			log.Printf("join: corrupted persisted state for %s: %+v", pid, *persistedState)
 			// Get the player reference and initialize with defaults
 			if snap, ok := eng.GetPlayer(pid); ok {
 				playerMgr.InitializePlayer(&snap)
-				// Re-apply the initialized state back to the engine
-				eng.RestorePlayerState(pid, state.PlayerState{
-					Pos: snap.Pos,
-				}, templates)
+				// Attempt to preserve non-corrupted fields from persistedState
+				restored := state.PlayerState{
+					Pos:       snap.Pos,
+					Inventory: persistedState.Inventory,
+					Equipment: persistedState.Equipment,
+					Skills:    persistedState.Skills,
+				}
+				eng.RestorePlayerState(pid, restored, templates)
 			}
 		}
 	}
