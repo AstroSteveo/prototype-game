@@ -96,8 +96,9 @@ func DeserializePlayerData(state state.PlayerState, player *Player, templates ma
 			return fmt.Errorf("failed to deserialize inventory: %w", err)
 		}
 
-		// Restore template catalog
+		// Restore template catalog and rebuild internal index map
 		inventory.SetTemplateCatalog(templates)
+		inventory.rebuildIndex()
 		player.Inventory = &inventory
 	}
 
@@ -160,11 +161,27 @@ func CreateDefaultPlayerState(playerID string, pos spatial.Vec2) state.PlayerSta
 	equipment := NewEquipment()
 	skills := make(map[string]int)
 
-	// Serialize defaults
-	inventoryData, _ := json.Marshal(inventory)
-	equipmentData, _ := json.Marshal(equipment)
-	skillsData, _ := json.Marshal(skills)
-	cooldownData, _ := json.Marshal(make(map[SlotID]time.Time))
+	// Serialize defaults - these should never fail, but handle errors for robustness
+	inventoryData, err := json.Marshal(inventory)
+	if err != nil {
+		// This should never happen with default inventory, but panic if it does
+		panic(fmt.Sprintf("failed to marshal default inventory during player state creation: %v", err))
+	}
+
+	equipmentData, err := json.Marshal(equipment)
+	if err != nil {
+		panic(fmt.Sprintf("failed to marshal default equipment: %v", err))
+	}
+
+	skillsData, err := json.Marshal(skills)
+	if err != nil {
+		panic(fmt.Sprintf("failed to marshal default skills: %v", err))
+	}
+
+	cooldownData, err := json.Marshal(make(map[SlotID]time.Time))
+	if err != nil {
+		panic(fmt.Sprintf("failed to marshal default cooldowns: %v", err))
+	}
 
 	encumbranceConfig := struct {
 		WeightLimit     float64                 `json:"weight_limit"`
@@ -173,7 +190,10 @@ func CreateDefaultPlayerState(playerID string, pos spatial.Vec2) state.PlayerSta
 		WeightLimit:     inventory.WeightLimit,
 		CompartmentCaps: inventory.CompartmentCaps,
 	}
-	encumbranceData, _ := json.Marshal(encumbranceConfig)
+	encumbranceData, err := json.Marshal(encumbranceConfig)
+	if err != nil {
+		panic(fmt.Sprintf("failed to marshal default encumbrance config: %v", err))
+	}
 
 	return state.PlayerState{
 		Pos:               pos,

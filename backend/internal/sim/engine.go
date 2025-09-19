@@ -588,6 +588,32 @@ func (e *Engine) RequestPlayerDisconnectPersist(ctx context.Context, playerID st
 	}
 }
 
+// RestorePlayerState applies persistent state to an existing player record
+func (e *Engine) RestorePlayerState(playerID string, persistedState state.PlayerState, templates map[ItemTemplateID]*ItemTemplate) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	player, ok := e.players[playerID]
+	if !ok {
+		return fmt.Errorf("player %s not found", playerID)
+	}
+
+	// Apply persistent state to the authoritative player record
+	return DeserializePlayerData(persistedState, player, templates)
+}
+
+// GetAllConnectedPlayerIDs returns IDs of all currently connected players
+func (e *Engine) GetAllConnectedPlayerIDs() []string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	playerIDs := make([]string, 0, len(e.players))
+	for id := range e.players {
+		playerIDs = append(playerIDs, id)
+	}
+	return playerIDs
+}
+
 // GetPersistenceMetrics returns persistence-related metrics
 func (e *Engine) GetPersistenceMetrics() map[string]interface{} {
 	if e.persistMgr != nil {

@@ -239,8 +239,10 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 			case <-done:
 				// On disconnect, persist last known state including inventory/equipment (US-006)
 				if store != nil {
-					// Request immediate persistence for disconnecting player
-					eng.RequestPlayerDisconnectPersist(r.Context(), playerID)
+					// Use background context with timeout instead of request context which will be canceled
+					persistCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					eng.RequestPlayerDisconnectPersist(persistCtx, playerID)
 				}
 				return
 			case <-activityCh:
