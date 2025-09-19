@@ -67,10 +67,10 @@ Current status based on US-002 roadmap alignment workshop outcomes. All MVP mile
 | Local Sharding (M3) | ✅ Green | 100% | Stable AOI & handovers | Monitor performance under equipment load |
 | Bot Density (M4) | ✅ Green | 100% | Population management | Maintain stability during equipment testing |
 | Persistence (M5) | ✅ Green | 100% | Position & basic state | Extend schema for equipment/skills (M6) |
-| Equipment System (M6) | 🔴 Red | 0% | Planning phase | Design database schema, begin implementation |
-| Skill Progression (M7) | 🔴 Red | 0% | Blocked by M6 | Wait for equipment foundation |
-| Targeting & Combat (M8) | 🔴 Red | 0% | Blocked by M6-M7 | Design targeting UI during M6 |
-| Integration & Polish (M9) | 🔴 Red | 0% | Future planning | UI/UX design for inventory systems |
+| Equipment System (M6) | ✅ Green | 100% | Production-ready backend | Enable client WebSocket operations |
+| Skill Progression (M7) | ✅ Green | 100% | Integrated with equipment | Create content management tools |
+| Targeting & Combat (M8) | 🟡 Yellow | 75% | Backend foundation ready | Implement combat resolution logic |
+| Integration & Polish (M9) | 🔴 Red | 25% | Client development needed | Create visual UI for equipment/inventory |
 
 ### Technical Health Checklist
 Summarize proof that the roadmap is grounded in reality. Link to supporting documents.
