@@ -31,6 +31,11 @@ func NewPostgresStore(dsn string) (*PostgresStore, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	// Configure connection pool for optimal performance
+	db.SetMaxOpenConns(25)                  // Maximum number of open connections
+	db.SetMaxIdleConns(10)                  // Maximum number of idle connections
+	db.SetConnMaxLifetime(30 * time.Minute) // Maximum connection lifetime
+
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
@@ -245,4 +250,23 @@ func (ps *PostgresStore) GetStats(ctx context.Context) (map[string]interface{}, 
 		"total_logins":  totalLogins,
 		"avg_logins":    avgLogins,
 	}, nil
+}
+
+// withTimeout creates a context with a reasonable timeout for database operations
+func (ps *PostgresStore) withTimeout(parent context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(parent, 5*time.Second)
+}
+
+// LoadWithTimeout retrieves player state with a timeout
+func (ps *PostgresStore) LoadWithTimeout(ctx context.Context, playerID string) (PlayerState, bool, error) {
+	timeoutCtx, cancel := ps.withTimeout(ctx)
+	defer cancel()
+	return ps.Load(timeoutCtx, playerID)
+}
+
+// SaveWithTimeout persists player state with a timeout
+func (ps *PostgresStore) SaveWithTimeout(ctx context.Context, playerID string, st PlayerState) error {
+	timeoutCtx, cancel := ps.withTimeout(ctx)
+	defer cancel()
+	return ps.Save(timeoutCtx, playerID, st)
 }
