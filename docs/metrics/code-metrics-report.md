@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The prototype-game codebase contains **11,236 total lines of source code** across 55 files, primarily written in Go with some JavaScript utilities. The project demonstrates strong testing practices with 57% of the codebase dedicated to test coverage.
+The prototype-game codebase contains **11,236 total lines of source code** across 55 files, primarily written in Go with some JavaScript utilities. The project demonstrates strong testing practices with 61.2% of the codebase dedicated to test coverage.
 
 ## Detailed Metrics
 
