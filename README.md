@@ -34,12 +34,14 @@ note: Refer to docs/product/roadmap/roadmap.md for authoritative, frequently upd
 
 | Area | Phase | State | Notes |
 |------|-------|-------|-------|
-| Simulation core | M0–M2 | Complete (prototype) | Cell math + local handover logic functional |
-| Gateway auth/session | M3 | Baseline | Token issuance + validation endpoints |
-| WebSocket transport | M4 | Scaffold | Build-tag gated, minimal JSON protocol handshake |
-| Persistence | M5 | In Progress | Schema + durability criteria defined (see roadmap) |
-| Combat systems | M6 | Upcoming | Design depends on persisted entity model |
-| Equipment & items | M6 | Upcoming | Data modeling pending persistence maturity |
+| Simulation core | M0–M2 | Complete (production) | Cell math + local handover logic functional |
+| Gateway auth/session | M3 | Complete | Token issuance + validation endpoints |
+| WebSocket transport | M4 | Complete | Full JSON protocol with resume capabilities |
+| Persistence | M5 | Complete | PostgreSQL with optimistic locking |
+| Equipment systems | M6 | Complete | Slots, cooldowns, skill requirements, encumbrance |
+| Inventory & skills | M7 | Complete | Multi-compartment inventory, skill progression |
+| Client enablement | M8 | In Progress | WebSocket equipment operations needed |
+| Visual client | M9 | Upcoming | Unity/Godot prototype planned |
 | Tooling & automation | Ongoing | Active | Make targets + scripts evolving |
 | Documentation & governance | Ongoing | Structured | ADR process + role/session guides |
 
@@ -83,6 +85,8 @@ gantt
 - 📝 **Latest Roadmap Meeting Outcomes**: [Issue #109](https://github.com/AstroSteveo/prototype-game/issues/109)
 - 🧬 **ADRs**: [docs/process/adr/](docs/process/adr/)
 - 🤖 **Copilot / Agent Guidance**: [.github/copilot-instructions.md](.github/copilot-instructions.md)
+- 📋 **Project Analysis**: [docs/analysis/](docs/analysis/) - Comprehensive system analysis and discovery
+- 🎯 **Next Steps**: [docs/product/roadmap/next-steps-analysis.md](docs/product/roadmap/next-steps-analysis.md)
 
 ---
 
