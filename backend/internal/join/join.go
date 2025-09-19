@@ -2,6 +2,7 @@ package join
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"prototype-game/backend/internal/sim"
@@ -73,25 +74,30 @@ func HandleJoin(ctx context.Context, auth AuthService, eng *sim.Engine, hello He
 
 	eng.AddOrUpdatePlayer(pid, name, pos, spatial.Vec2{})
 
-	// Read player fields via snapshot accessor to avoid data races with the tick loop.
-	snap, _ := eng.GetPlayer(pid)
-
-	// Initialize or restore player data
+	// Initialize or restore player data directly on the engine's authoritative record
 	if persistedState != nil {
 		// Restore from persistence including inventory, equipment, and skills
-		if err := sim.DeserializePlayerData(*persistedState, &snap, templates); err != nil {
+		if err := eng.RestorePlayerState(pid, *persistedState, templates); err != nil {
 			// If deserialization fails, log warning and fall back to defaults
-			// In production, we might want more sophisticated error handling
-			playerMgr.InitializePlayer(&snap)
+			log.Printf("join: failed to deserialize player state for %s: %v", pid, err)
+			// Get the player reference and initialize with defaults
+			if snap, ok := eng.GetPlayer(pid); ok {
+				playerMgr.InitializePlayer(&snap)
+				// Re-apply the initialized state back to the engine
+				eng.RestorePlayerState(pid, state.PlayerState{
+					Pos: snap.Pos,
+				}, templates)
+			}
 		}
-	} else {
-		// New player - initialize with defaults
-		playerMgr.InitializePlayer(&snap)
 	}
 
-	// Ensure all player components are properly initialized
-	if snap.Inventory == nil || snap.Equipment == nil || snap.Skills == nil {
+	// Read player fields via snapshot accessor after restoration for the response
+	snap, _ := eng.GetPlayer(pid)
+
+	// Ensure all player components are properly initialized if this is a new player
+	if persistedState == nil && (snap.Inventory == nil || snap.Equipment == nil || snap.Skills == nil) {
 		playerMgr.InitializePlayer(&snap)
+		// Note: For new players, initialization is handled in AddOrUpdatePlayer
 	}
 
 	cfg := eng.GetConfig()

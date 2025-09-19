@@ -187,9 +187,15 @@ func (pm *PersistenceManager) checkpointScheduler(ctx context.Context) {
 
 // scheduleAllPlayerCheckpoints requests checkpoints for all connected players
 func (pm *PersistenceManager) scheduleAllPlayerCheckpoints(ctx context.Context) {
-	// This would need to be implemented to get all connected players from the engine
-	// For now, we'll implement this as a stub
-	// TODO: Add engine method to get all connected player IDs
+	// Get all connected player IDs from the engine
+	playerIDs := pm.engine.GetAllConnectedPlayerIDs()
+
+	// Request checkpoint for each connected player
+	for _, playerID := range playerIDs {
+		pm.RequestCheckpoint(ctx, playerID)
+	}
+
+	log.Printf("PersistenceManager: scheduled checkpoints for %d connected players", len(playerIDs))
 }
 
 // processBatch processes a batch of checkpoint requests

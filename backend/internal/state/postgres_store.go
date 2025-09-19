@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
@@ -18,10 +17,9 @@ var (
 
 // PostgresStore implements persistence using PostgreSQL with optimistic locking
 type PostgresStore struct {
-	db            *sql.DB
-	saveStmt      *sql.Stmt
-	loadStmt      *sql.Stmt
-	incrementStmt *sql.Stmt
+	db       *sql.DB
+	saveStmt *sql.Stmt
+	loadStmt *sql.Stmt
 }
 
 // NewPostgresStore creates a new PostgreSQL-backed store
@@ -114,15 +112,6 @@ func (ps *PostgresStore) prepareStatements() error {
 		return fmt.Errorf("failed to prepare load statement: %w", err)
 	}
 
-	// Version increment for login tracking (non-conflicting)
-	ps.incrementStmt, err = ps.db.Prepare(`
-		UPDATE player_state SET logins = logins + 1, updated = $2
-		WHERE player_id = $1
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to prepare increment statement: %w", err)
-	}
-
 	return nil
 }
 
@@ -200,12 +189,6 @@ func (ps *PostgresStore) Save(ctx context.Context, playerID string, st PlayerSta
 	return nil
 }
 
-// IncrementLoginCount increments the login counter without version conflicts
-func (ps *PostgresStore) IncrementLoginCount(ctx context.Context, playerID string) error {
-	_, err := ps.incrementStmt.ExecContext(ctx, playerID, time.Now())
-	return err
-}
-
 // Close closes the database connection and prepared statements
 func (ps *PostgresStore) Close() error {
 	if ps.saveStmt != nil {
@@ -213,9 +196,6 @@ func (ps *PostgresStore) Close() error {
 	}
 	if ps.loadStmt != nil {
 		ps.loadStmt.Close()
-	}
-	if ps.incrementStmt != nil {
-		ps.incrementStmt.Close()
 	}
 	if ps.db != nil {
 		return ps.db.Close()
