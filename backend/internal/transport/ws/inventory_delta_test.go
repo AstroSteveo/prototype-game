@@ -130,9 +130,6 @@ func TestInventoryDeltaBroadcast(t *testing.T) {
 								break
 							}
 						}
-							foundPotion = true
-							break
-						}
 					}
 
 					if !foundPotion {

@@ -31,6 +31,11 @@ func (pm *PlayerManager) GetItemTemplate(id ItemTemplateID) (*ItemTemplate, bool
 	return template, exists
 }
 
+// GetAllItemTemplates returns all registered item templates
+func (pm *PlayerManager) GetAllItemTemplates() map[ItemTemplateID]*ItemTemplate {
+	return pm.itemTemplates
+}
+
 // InitializePlayer sets up a new player with default inventory and equipment
 func (pm *PlayerManager) InitializePlayer(player *Player) {
 	if player.Inventory == nil {
