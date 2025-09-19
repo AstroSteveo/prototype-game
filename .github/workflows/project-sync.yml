@@ -183,7 +183,7 @@ jobs:
 
             // Resolve the ProjectV2 item for this content
             const itemQuery = `
-              query($contentId: ID!, $projectId: ID!) {
+              query($contentId: ID!) {
                 node(id: $contentId) {
                   ... on Issue {
                     projectItems(first: 50, includeArchived: true) {
@@ -208,19 +208,12 @@ jobs:
                     }
                   }
                 }
-                projectV2(id: $projectId) {
-                  id
-                }
-                projectV2(id: $projectId) {
-                  id
-                }
               }
             `;
 
             async function findProjectItemId() {
               const itemQueryResult = await github.graphql(itemQuery, {
                 contentId: contentNodeId,
-                projectId: project.id,
               });
               return itemQueryResult.node?.projectItems?.nodes?.find(
                 n => n.project?.id === project.id)?.id;
