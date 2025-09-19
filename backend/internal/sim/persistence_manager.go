@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"prototype-game/backend/internal/state"
@@ -22,12 +23,12 @@ type PersistenceManager struct {
 	checkpointInterval time.Duration
 	batchSize          int
 
-	// Metrics
+	// Metrics (using atomic for thread safety)
 	persistAttempts    int64
 	persistSuccesses   int64
 	persistFailures    int64
-	lastPersistTime    time.Time
-	avgPersistDuration time.Duration
+	lastPersistTime    int64 // Unix timestamp, use atomic for access
+	avgPersistDuration int64 // Nanoseconds, use atomic for access
 }
 
 // PlayerPersistRequest represents a request to persist player data
@@ -87,6 +88,9 @@ func (pm *PersistenceManager) RequestCheckpoint(ctx context.Context, playerID st
 		Priority: PriorityCheckpoint,
 		Context:  ctx,
 	}:
+	case <-ctx.Done():
+		// Context cancelled, skip checkpoint (best-effort anyway)
+		return
 	default:
 		// Channel full, skip this checkpoint (best-effort)
 		log.Printf("PersistenceManager: checkpoint queue full, skipping player %s", playerID)
@@ -101,6 +105,10 @@ func (pm *PersistenceManager) RequestDisconnectPersist(ctx context.Context, play
 		Priority: PriorityDisconnect,
 		Context:  ctx,
 	}:
+	case <-ctx.Done():
+		// Context cancelled, skip persistence
+		log.Printf("PersistenceManager: context cancelled for player %s disconnect persist", playerID)
+		return
 	case <-time.After(1 * time.Second):
 		// If we can't queue in 1 second, something is very wrong
 		log.Printf("PersistenceManager: disconnect queue blocked, forcing sync save for player %s", playerID)
@@ -210,11 +218,11 @@ func (pm *PersistenceManager) processBatch(batch []PlayerPersistRequest) {
 	}
 
 	duration := time.Since(start)
-	pm.persistAttempts += int64(len(batch))
-	pm.persistSuccesses += int64(successes)
-	pm.persistFailures += int64(len(batch) - successes)
-	pm.lastPersistTime = time.Now()
-	pm.avgPersistDuration = duration / time.Duration(len(batch))
+	atomic.AddInt64(&pm.persistAttempts, int64(len(batch)))
+	atomic.AddInt64(&pm.persistSuccesses, int64(successes))
+	atomic.AddInt64(&pm.persistFailures, int64(len(batch)-successes))
+	atomic.StoreInt64(&pm.lastPersistTime, time.Now().Unix())
+	atomic.StoreInt64(&pm.avgPersistDuration, int64(duration)/int64(len(batch)))
 
 	if successes < len(batch) {
 		log.Printf("PersistenceManager: batch processed %d/%d successfully in %v",
@@ -262,14 +270,14 @@ func (pm *PersistenceManager) persistPlayerSync(ctx context.Context, playerID st
 	return true
 }
 
-// GetMetrics returns persistence metrics for telemetry
+// GetMetrics returns persistence metrics for telemetry (thread-safe)
 func (pm *PersistenceManager) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
-		"persist_attempts":     pm.persistAttempts,
-		"persist_successes":    pm.persistSuccesses,
-		"persist_failures":     pm.persistFailures,
-		"last_persist_time":    pm.lastPersistTime,
-		"avg_persist_duration": pm.avgPersistDuration.Milliseconds(),
+		"persist_attempts":     atomic.LoadInt64(&pm.persistAttempts),
+		"persist_successes":    atomic.LoadInt64(&pm.persistSuccesses),
+		"persist_failures":     atomic.LoadInt64(&pm.persistFailures),
+		"last_persist_time":    time.Unix(atomic.LoadInt64(&pm.lastPersistTime), 0),
+		"avg_persist_duration": atomic.LoadInt64(&pm.avgPersistDuration) / int64(time.Millisecond),
 		"checkpoint_queue_len": len(pm.checkpoints),
 		"disconnect_queue_len": len(pm.disconnects),
 	}
