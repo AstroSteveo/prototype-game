@@ -10,7 +10,7 @@ echo "🔍 Validating Project Sync Configuration..."
 # Check if required files exist
 echo "📁 Checking required files..."
 
-DOCS_FILE="docs/process/PROJECTS.md"
+DOCS_FILE="docs/operations/project-sync.md"
 WORKFLOW_FILE=".github/workflows/project-sync.yml"
 
 if [[ ! -f "$DOCS_FILE" ]]; then
