@@ -51,14 +51,14 @@ echo "Total test code: $test_go_lines lines"
 echo
 
 # Calculate totals
-total_source=$((go_lines + js_lines))
+total_code_lines=$((go_lines + js_lines + sh_lines))
 echo "=== SUMMARY ==="
-echo "TOTAL SOURCE CODE: $total_source lines"
+echo "TOTAL CODE (Go + JS + Shell): $total_code_lines lines"
 
 # Calculate percentages
-if [ $total_source -gt 0 ]; then
-    prod_percent=$((total_prod * 100 / total_source))
-    test_percent=$((test_go_lines * 100 / total_source))
+if [ $total_code_lines -gt 0 ]; then
+    prod_percent=$((total_prod * 100 / total_code_lines))
+    test_percent=$((test_go_lines * 100 / total_code_lines))
     echo "Production code: $prod_percent%"
     echo "Test code: $test_percent%"
 fi
