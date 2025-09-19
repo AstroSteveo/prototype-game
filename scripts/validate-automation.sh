@@ -20,7 +20,7 @@ else
     exit 1
 fi
 
-if [[ -f "docs/project-board-setup.md" ]]; then
+if [[ -f "docs/operations/project-board-automation.md" ]]; then
     echo "  ✓ Setup documentation exists"
 else
     echo "  ✗ Setup documentation missing"
@@ -137,4 +137,4 @@ echo "2. Create a test issue to validate automation"
 echo "3. Monitor the Actions tab for workflow execution"
 echo
 
-echo "For detailed setup instructions, see: docs/project-board-setup.md"
+echo "For detailed setup instructions, see: docs/operations/project-board-automation.md"
