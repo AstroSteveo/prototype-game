@@ -2,53 +2,68 @@
 # Developer helper script for testing inventory operations
 # Usage: ./scripts/test-inventory.sh
 
-set -e
+set -euo pipefail
 
 echo "=== Inventory System Test Helper ==="
 echo
 
-# Start services
-echo "Starting services..."
-make run > /dev/null 2>&1
-sleep 2
+RUN_LOG=$(mktemp -t inventory-run.XXXX.log)
+TEST_LOG=$(mktemp -t inventory-tests.XXXX.log)
 
-# Get token
+cleanup() {
+	if [[ -n "${RUN_PID:-}" ]]; then
+		if kill -0 "${RUN_PID}" 2>/dev/null; then
+			kill "${RUN_PID}" 2>/dev/null || true
+			wait "${RUN_PID}" 2>/dev/null || true
+		fi
+	fi
+	make stop >/dev/null 2>&1 || true
+	rm -f "${RUN_LOG}" "${TEST_LOG}"
+}
+trap cleanup EXIT
+
+echo "Starting services..."
+make run >"${RUN_LOG}" 2>&1 &
+RUN_PID=$!
+sleep 2
+if ! kill -0 "${RUN_PID}" 2>/dev/null; then
+	echo "❌ make run exited early"
+	cat "${RUN_LOG}"
+	exit 1
+fi
+
 echo "Getting authentication token..."
 TOKEN=$(make login 2>/dev/null)
-echo "Token: $TOKEN"
+echo "Token: ${TOKEN}"
 echo
 
-# Test WebSocket join with inventory data
 echo "Testing WebSocket join with inventory data..."
 echo "Expected: join_ack with inventory, equipment, skills, and encumbrance fields"
 echo "---"
-# Capture only the JSON output, filtering out the go run line
-OUTPUT=$(make wsprobe TOKEN="$TOKEN" 2>/dev/null | grep '^{')
-echo "$OUTPUT" | python3 -m json.tool
+OUTPUT=$(make wsprobe TOKEN="${TOKEN}" 2>/dev/null | grep '^{')
+echo "${OUTPUT}" | python3 -m json.tool
 echo "---"
 echo
 
-# Test inventory system components
 echo "Running inventory integration tests..."
-make test-ws > /tmp/test-output.log 2>&1
-if [ $? -eq 0 ]; then
-    echo "✅ All inventory tests passed"
-    echo "   - Inventory data in join_ack"
-    echo "   - Item templates validation"
-    echo "   - Equipment slot operations"
-    echo "   - Encumbrance calculation with movement penalties"
-    echo "   - Cooldown protection"
-    echo "   - Skill requirement gating"
+if make test-ws >"${TEST_LOG}" 2>&1; then
+	echo "✅ All inventory tests passed"
+	echo "   - Inventory data in join_ack"
+	echo "   - Item templates validation"
+	echo "   - Equipment slot operations"
+	echo "   - Encumbrance calculation with movement penalties"
+	echo "   - Cooldown protection"
+	echo "   - Skill requirement gating"
 else
-    echo "❌ Some tests failed - check test output:"
-    cat /tmp/test-output.log
+	echo "❌ Some tests failed - check test output:"
+	cat "${TEST_LOG}"
+	exit 1
 fi
 echo
 
-# Show available item templates
 echo "Available test item templates:"
 echo "  - sword_iron: Iron Sword (main hand, requires melee skill 10)"
-echo "  - shield_wood: Wooden Shield (off hand, requires defense skill 5)" 
+echo "  - shield_wood: Wooden Shield (off hand, requires defense skill 5)"
 echo "  - armor_leather: Leather Armor (chest, no skill requirement)"
 echo "  - potion_health: Health Potion (consumable, cannot be equipped)"
 echo
@@ -63,7 +78,7 @@ echo "  ✅ WebSocket integration - inventory data in join_ack"
 echo "  ✅ Comprehensive test coverage"
 echo
 
-# Cleanup
 echo "Stopping services..."
-make stop > /dev/null 2>&1
+# cleanup trap will stop services
+
 echo "Done!"

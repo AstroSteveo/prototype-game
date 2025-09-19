@@ -33,9 +33,16 @@ func (pm *PlayerManager) GetItemTemplate(id ItemTemplateID) (*ItemTemplate, bool
 
 // InitializePlayer sets up a new player with default inventory and equipment
 func (pm *PlayerManager) InitializePlayer(player *Player) {
-	player.Inventory = NewInventory()
-	player.Equipment = NewEquipment()
-	player.Skills = make(map[string]int)
+	if player.Inventory == nil {
+		player.Inventory = NewInventory()
+	}
+	player.Inventory.SetTemplateCatalog(pm.itemTemplates)
+	if player.Equipment == nil {
+		player.Equipment = NewEquipment()
+	}
+	if player.Skills == nil {
+		player.Skills = make(map[string]int)
+	}
 }
 
 // CheckSkillRequirements verifies if a player meets the skill requirements for an item
@@ -97,8 +104,12 @@ func (pm *PlayerManager) EquipItem(player *Player, instanceID ItemInstanceID, sl
 	if !player.Equipment.IsSlotEmpty(slot) {
 		oldItem := player.Equipment.GetSlot(slot)
 		if oldItem != nil {
+			oldTemplate, exists := pm.GetItemTemplate(oldItem.Instance.TemplateID)
+			if !exists {
+				return fmt.Errorf("unknown item template: %s", oldItem.Instance.TemplateID)
+			}
 			// Add old item back to inventory (use same compartment as current item)
-			err := player.Inventory.AddItem(oldItem.Instance, item.Compartment, template)
+			err := player.Inventory.AddItem(oldItem.Instance, item.Compartment, oldTemplate)
 			if err != nil {
 				return fmt.Errorf("cannot unequip old item: %w", err)
 			}

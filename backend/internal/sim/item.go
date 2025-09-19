@@ -109,4 +109,5 @@ const (
 type InventoryItem struct {
 	Instance    ItemInstance    `json:"instance"`
 	Compartment CompartmentType `json:"compartment"`
+	template    *ItemTemplate
 }

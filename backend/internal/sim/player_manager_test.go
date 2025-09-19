@@ -1,6 +1,7 @@
 package sim
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -391,6 +392,73 @@ func TestPlayerManager_GetPlayerEncumbrance(t *testing.T) {
 
 	if encumbrance.MovementPenalty >= 1.0 {
 		t.Errorf("Movement penalty expected at 100%% weight, got %f", encumbrance.MovementPenalty)
+	}
+}
+
+func TestPlayerManager_EquipSwapRespectsInventoryLimits(t *testing.T) {
+	pm := NewPlayerManager()
+	player := createTestPlayer()
+	pm.InitializePlayer(player)
+
+	packTemplate := &ItemTemplate{ID: "pack", Weight: 10.0, Bulk: 1}
+	shieldTemplate := &ItemTemplate{
+		ID:       "shield",
+		SlotMask: SlotMaskMainHand,
+		Weight:   20.0,
+		Bulk:     3,
+		SkillReq: map[string]int{"defense": 5},
+	}
+	swordTemplate := &ItemTemplate{
+		ID:       "sword",
+		SlotMask: SlotMaskMainHand,
+		Weight:   5.0,
+		Bulk:     1,
+		SkillReq: map[string]int{"melee": 10},
+	}
+
+	pm.RegisterItemTemplate(packTemplate)
+	pm.RegisterItemTemplate(shieldTemplate)
+	pm.RegisterItemTemplate(swordTemplate)
+
+	pack := ItemInstance{InstanceID: "pack1", TemplateID: packTemplate.ID, Quantity: 1, Durability: 1.0}
+	if err := pm.AddItemToInventory(player, pack, CompartmentBackpack); err != nil {
+		t.Fatalf("add pack: %v", err)
+	}
+
+	shield := ItemInstance{InstanceID: "shield1", TemplateID: shieldTemplate.ID, Quantity: 1, Durability: 1.0}
+	if err := pm.AddItemToInventory(player, shield, CompartmentBackpack); err != nil {
+		t.Fatalf("add shield: %v", err)
+	}
+
+	player.Skills["defense"] = 5
+	now := time.Now()
+	if err := pm.EquipItem(player, shield.InstanceID, SlotMainHand, now); err != nil {
+		t.Fatalf("equip shield: %v", err)
+	}
+
+	player.Inventory.WeightLimit = 25.0
+
+	sword := ItemInstance{InstanceID: "sword1", TemplateID: swordTemplate.ID, Quantity: 1, Durability: 1.0}
+	if err := pm.AddItemToInventory(player, sword, CompartmentBackpack); err != nil {
+		t.Fatalf("add sword: %v", err)
+	}
+
+	player.Skills["melee"] = 10
+	err := pm.EquipItem(player, sword.InstanceID, SlotMainHand, now.Add(EquipCooldown+time.Millisecond))
+	if !errors.Is(err, ErrExceedsWeight) {
+		t.Fatalf("expected ErrExceedsWeight, got %v", err)
+	}
+
+	equipped := player.Equipment.GetSlot(SlotMainHand)
+	if equipped == nil || equipped.Instance.InstanceID != shield.InstanceID {
+		t.Fatalf("shield should remain equipped, got %+v", equipped)
+	}
+
+	if !player.Inventory.HasItem(sword.InstanceID) {
+		t.Fatalf("sword should stay in inventory on failure")
+	}
+	if player.Inventory.HasItem(shield.InstanceID) {
+		t.Fatalf("shield should not be in inventory on failed swap")
 	}
 }
 
