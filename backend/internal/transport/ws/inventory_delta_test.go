@@ -111,7 +111,25 @@ func TestInventoryDeltaBroadcast(t *testing.T) {
 					for _, item := range items {
 						itemObj := item.(map[string]interface{})
 						instance := itemObj["instance"].(map[string]interface{})
-						if instance["template_id"] == "potion_health" && instance["quantity"].(float64) == 3 {
+						if instance["template_id"] == "potion_health" {
+							var qtyInt int
+							switch qty := instance["quantity"].(type) {
+							case float64:
+								qtyInt = int(qty)
+							case int:
+								qtyInt = qty
+							case int32:
+								qtyInt = int(qty)
+							case int64:
+								qtyInt = int(qty)
+							default:
+								continue // skip if type is unexpected
+							}
+							if qtyInt == 3 {
+								foundPotion = true
+								break
+							}
+						}
 							foundPotion = true
 							break
 						}
