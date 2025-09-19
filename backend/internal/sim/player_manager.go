@@ -63,12 +63,20 @@ func (pm *PlayerManager) AddItemToInventory(player *Player, instance ItemInstanc
 		return fmt.Errorf("unknown item template: %s", instance.TemplateID)
 	}
 
-	return player.Inventory.AddItem(instance, compartment, template)
+	err := player.Inventory.AddItem(instance, compartment, template)
+	if err == nil {
+		player.InventoryVersion++
+	}
+	return err
 }
 
 // RemoveItemFromInventory removes an item from a player's inventory
 func (pm *PlayerManager) RemoveItemFromInventory(player *Player, instanceID ItemInstanceID) error {
-	return player.Inventory.RemoveItem(instanceID)
+	err := player.Inventory.RemoveItem(instanceID)
+	if err == nil {
+		player.InventoryVersion++
+	}
+	return err
 }
 
 // EquipItem equips an item from inventory to an equipment slot
@@ -124,6 +132,10 @@ func (pm *PlayerManager) EquipItem(player *Player, instanceID ItemInstanceID, sl
 	// Equip the new item
 	player.Equipment.SetSlot(slot, item.Instance, EquipCooldown, now)
 
+	// Update both inventory and equipment versions
+	player.InventoryVersion++
+	player.EquipmentVersion++
+
 	return nil
 }
 
@@ -152,6 +164,10 @@ func (pm *PlayerManager) UnequipItem(player *Player, slot SlotID, compartment Co
 
 	// Clear the equipment slot
 	player.Equipment.ClearSlot(slot)
+
+	// Update both inventory and equipment versions
+	player.InventoryVersion++
+	player.EquipmentVersion++
 
 	return nil
 }
@@ -258,6 +274,27 @@ func (pm *PlayerManager) CreateTestItemTemplates() {
 		DisplayName: "Health Potion",
 		SlotMask:    0, // Cannot be equipped
 		Weight:      0.1,
+		Bulk:        1,
+		DamageType:  "",
+		SkillReq:    map[string]int{},
+	})
+
+	// Heavy test items for encumbrance testing
+	pm.RegisterItemTemplate(&ItemTemplate{
+		ID:          "anvil_iron",
+		DisplayName: "Iron Anvil",
+		SlotMask:    0,    // Cannot be equipped
+		Weight:      85.0, // Heavy for encumbrance testing
+		Bulk:        25,
+		DamageType:  "",
+		SkillReq:    map[string]int{},
+	})
+
+	pm.RegisterItemTemplate(&ItemTemplate{
+		ID:          "rock_small",
+		DisplayName: "Small Rock",
+		SlotMask:    0,
+		Weight:      0.5,
 		Bulk:        1,
 		DamageType:  "",
 		SkillReq:    map[string]int{},

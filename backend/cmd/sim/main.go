@@ -147,6 +147,102 @@ func main() {
 		_ = json.NewEncoder(w).Encode(eng.DevListAllEntities())
 	})
 
+	// Dev endpoint to add items to player inventory
+	mux.HandleFunc("/dev/add-item", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			PlayerID    string `json:"player_id"`
+			TemplateID  string `json:"template_id"`
+			Quantity    int    `json:"quantity"`
+			Compartment string `json:"compartment"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		compartment := sim.CompartmentType(req.Compartment)
+		if compartment == "" {
+			compartment = sim.CompartmentBackpack // default
+		}
+
+		if req.Quantity <= 0 {
+			req.Quantity = 1 // default
+		}
+
+		err := eng.DevAddItemToPlayer(req.PlayerID, sim.ItemTemplateID(req.TemplateID), req.Quantity, compartment)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Item added"})
+	})
+
+	// Dev endpoint to give player skills
+	mux.HandleFunc("/dev/give-skill", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			PlayerID string `json:"player_id"`
+			Skill    string `json:"skill"`
+			Level    int    `json:"level"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		err := eng.DevGivePlayerSkill(req.PlayerID, req.Skill, req.Level)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Skill added"})
+	})
+
+	// Dev endpoint to list available item templates
+	mux.HandleFunc("/dev/item-templates", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		playerMgr := eng.GetPlayerManager()
+
+		// Get all available templates
+		templates := []map[string]interface{}{}
+		testTemplates := []sim.ItemTemplateID{
+			"sword_iron", "shield_wood", "armor_leather", "potion_health", "anvil_iron", "rock_small",
+		}
+
+		for _, templateID := range testTemplates {
+			if template, exists := playerMgr.GetItemTemplate(templateID); exists {
+				templates = append(templates, map[string]interface{}{
+					"id":           template.ID,
+					"display_name": template.DisplayName,
+					"weight":       template.Weight,
+					"bulk":         template.Bulk,
+					"damage_type":  template.DamageType,
+					"skill_req":    template.SkillReq,
+				})
+			}
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"templates":    templates,
+			"compartments": []string{"backpack", "belt", "craft_bag"},
+		})
+	})
+
 	srv := &http.Server{Addr: ":" + *port, Handler: mux}
 	go func() {
 		log.Printf("sim: http listening on :%s", *port)

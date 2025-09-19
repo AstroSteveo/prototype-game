@@ -181,6 +181,11 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 			}
 		}
 		lastCell := ack.Cell // track last known owned cell to emit handover events
+
+		// Track last sent versions for delta updates
+		var lastInventoryVersion int64 = -1 // Force initial send
+		var lastEquipmentVersion int64 = -1 // Force initial send
+		var lastSkillsVersion int64 = -1    // Force initial send
 		// movement speed meters/sec when intent vector length is 1
 		const moveSpeed = 3.0
 
@@ -247,13 +252,42 @@ func RegisterWithOptions(mux *http.ServeMux, path string, auth join.AuthService,
 						"name": e.Name,
 					})
 				}
+
+				// Prepare state message data
+				msgData := map[string]any{
+					"ack":      lastAck,
+					"player":   map[string]any{"id": p.ID, "pos": p.Pos, "vel": p.Vel},
+					"entities": ents,
+				}
+
+				// Add inventory delta if changed
+				if p.InventoryVersion != lastInventoryVersion {
+					playerMgr := eng.GetPlayerManager()
+					encumbrance := playerMgr.GetPlayerEncumbrance(&p)
+					msgData["inventory"] = map[string]any{
+						"items":            p.Inventory.Items,
+						"compartment_caps": p.Inventory.CompartmentCaps,
+						"weight_limit":     p.Inventory.WeightLimit,
+						"encumbrance":      encumbrance,
+					}
+					lastInventoryVersion = p.InventoryVersion
+				}
+
+				// Add equipment delta if changed
+				if p.EquipmentVersion != lastEquipmentVersion {
+					msgData["equipment"] = p.Equipment
+					lastEquipmentVersion = p.EquipmentVersion
+				}
+
+				// Add skills delta if changed
+				if p.SkillsVersion != lastSkillsVersion {
+					msgData["skills"] = p.Skills
+					lastSkillsVersion = p.SkillsVersion
+				}
+
 				msg := map[string]any{
 					"type": "state",
-					"data": map[string]any{
-						"ack":      lastAck,
-						"player":   map[string]any{"id": p.ID, "pos": p.Pos, "vel": p.Vel},
-						"entities": ents,
-					},
+					"data": msgData,
 				}
 				// Observe snapshot payload size (JSON encoded)
 				if bs, err := json.Marshal(msg); err == nil {
