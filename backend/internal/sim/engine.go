@@ -12,6 +12,7 @@ import (
 
 	"prototype-game/backend/internal/metrics"
 	"prototype-game/backend/internal/spatial"
+	"prototype-game/backend/internal/state"
 )
 
 type Engine struct {
@@ -25,6 +26,8 @@ type Engine struct {
 	stoppedCh chan struct{}
 	// Player management with inventory/equipment
 	playerMgr *PlayerManager
+	// Persistence management for inventory/equipment/skills
+	persistMgr *PersistenceManager
 	// lifecycle guards
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -550,4 +553,45 @@ func (e *Engine) MetricsSnapshot() Metrics {
 		avg = float64(ent) / float64(q)
 	}
 	return Metrics{Handovers: ho, AOIQueries: q, AOIEntitiesTotal: ent, AOIAvgEntities: avg}
+}
+
+// SetPersistenceStore configures the persistence manager with a store
+func (e *Engine) SetPersistenceStore(store state.Store) {
+	e.persistMgr = NewPersistenceManager(store, e)
+}
+
+// StartPersistence begins the persistence manager (should be called after Start)
+func (e *Engine) StartPersistence(ctx context.Context) {
+	if e.persistMgr != nil {
+		e.persistMgr.Start(ctx)
+	}
+}
+
+// StopPersistence gracefully shuts down the persistence manager
+func (e *Engine) StopPersistence() {
+	if e.persistMgr != nil {
+		e.persistMgr.Stop()
+	}
+}
+
+// RequestPlayerCheckpoint requests a checkpoint save for a player
+func (e *Engine) RequestPlayerCheckpoint(ctx context.Context, playerID string) {
+	if e.persistMgr != nil {
+		e.persistMgr.RequestCheckpoint(ctx, playerID)
+	}
+}
+
+// RequestPlayerDisconnectPersist immediately saves player data on disconnect
+func (e *Engine) RequestPlayerDisconnectPersist(ctx context.Context, playerID string) {
+	if e.persistMgr != nil {
+		e.persistMgr.RequestDisconnectPersist(ctx, playerID)
+	}
+}
+
+// GetPersistenceMetrics returns persistence-related metrics
+func (e *Engine) GetPersistenceMetrics() map[string]interface{} {
+	if e.persistMgr != nil {
+		return e.persistMgr.GetMetrics()
+	}
+	return map[string]interface{}{}
 }
