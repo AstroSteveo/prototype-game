@@ -1,0 +1,206 @@
+[
+  {
+    "id": "T-001",
+    "title": "[T-001] Finalize requirements and design",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/154",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:high",
+      "phase:1"
+    ]
+  },
+  {
+    "id": "T-002",
+    "title": "[T-002] Tasks plan completion",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/155",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:high",
+      "phase:1"
+    ]
+  },
+  {
+    "id": "T-010",
+    "title": "[T-010] WS origin policy & dev mode",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/156",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:high",
+      "phase:2"
+    ]
+  },
+  {
+    "id": "T-011",
+    "title": "[T-011] Resume token validation",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/157",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:high",
+      "phase:2"
+    ]
+  },
+  {
+    "id": "T-012",
+    "title": "[T-012] Idle timeout and ping behavior",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/158",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:medium",
+      "phase:2"
+    ]
+  },
+  {
+    "id": "T-020",
+    "title": "[T-020] Input clamping and velocity",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/159",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:high",
+      "phase:3"
+    ]
+  },
+  {
+    "id": "T-021",
+    "title": "[T-021] AOI neighborhood and epsilon",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/160",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:high",
+      "phase:3"
+    ]
+  },
+  {
+    "id": "T-022",
+    "title": "[T-022] Handover hysteresis and anti-thrash",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/161",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:high",
+      "phase:3"
+    ]
+  },
+  {
+    "id": "T-030",
+    "title": "[T-030] Equip validation matrix",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/162",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:high",
+      "phase:4"
+    ]
+  },
+  {
+    "id": "T-031",
+    "title": "[T-031] Inventory/equipment deltas & versions",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/163",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:medium",
+      "phase:4"
+    ]
+  },
+  {
+    "id": "T-032",
+    "title": "[T-032] Encumbrance including equipped items",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/164",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:medium",
+      "phase:4"
+    ]
+  },
+  {
+    "id": "T-040",
+    "title": "[T-040] Bot density maintenance bounds",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/165",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:medium",
+      "phase:5"
+    ]
+  },
+  {
+    "id": "T-050",
+    "title": "[T-050] Disconnect save and checkpoint",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/166",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:medium",
+      "phase:6"
+    ]
+  },
+  {
+    "id": "T-051",
+    "title": "[T-051] Restore from persisted state",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/167",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:medium",
+      "phase:6"
+    ]
+  },
+  {
+    "id": "T-060",
+    "title": "[T-060] Metrics coverage",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/168",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:low",
+      "phase:7"
+    ]
+  },
+  {
+    "id": "T-070",
+    "title": "[T-070] Error matrix validation",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/169",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:low",
+      "phase:8"
+    ]
+  },
+  {
+    "id": "T-071",
+    "title": "[T-071] Update PR template + workflows (optional)",
+    "url": "https://github.com/AstroSteveo/prototype-game/issues/170",
+    "created": true,
+    "project_added": false,
+    "labels": [
+      "task",
+      "priority:low",
+      "phase:8"
+    ]
+  }
+]
