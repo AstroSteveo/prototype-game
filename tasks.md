@@ -146,3 +146,5 @@ Purpose: Track implementation tasks, owners, estimates, dependencies, and accept
     - Priority: Low
     - Acceptance Criteria: Template present and used in PRs.
 
+<!-- sync: trigger Phase 2 issues to Project 2 on 2025-09-19 -->
+
