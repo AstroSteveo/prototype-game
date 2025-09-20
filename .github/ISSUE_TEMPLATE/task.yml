@@ -1,0 +1,36 @@
+name: Task
+description: Create a new implementation task
+title: "[T-XXX] <short title>"
+labels: [task]
+body:
+  - type: input
+    id: task_id
+    attributes:
+      label: Task ID
+      description: Use the T-### from tasks.md if applicable
+      placeholder: T-010
+  - type: input
+    id: phase
+    attributes:
+      label: Phase
+      placeholder: 2
+  - type: input
+    id: requirements
+    attributes:
+      label: Related Requirements
+      placeholder: R4, R6
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      placeholder: What needs to be done and why
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      placeholder: "- [ ] Criterion A\n- [ ] Criterion B"
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes/Links
+      placeholder: Link to requirements.md, design.md, tasks.md

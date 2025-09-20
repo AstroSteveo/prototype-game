@@ -12,6 +12,8 @@ PROJECT_NUMBER = os.environ.get("PROJECT_NUMBER", "2")
 ASSIGNEE = os.environ.get("ASSIGNEE", "")
 LABELS_DEFAULT = os.environ.get("LABELS", "task").split(",")
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("1","true","yes","on")
+PHASES = [p.strip() for p in os.environ.get("PHASES", "").split(",") if p.strip()]
+MILESTONE_TITLE = os.environ.get("MILESTONE_TITLE", "")
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS_FILE = ROOT / "tasks.md"
@@ -231,6 +233,27 @@ def slugify(text:str):
     return s.lower()
 
 
+def phase_number(phase_str:str) -> str:
+    m = re.match(r"Phase\s*(\d+)", phase_str or "")
+    return m.group(1) if m else ""
+
+
+def ensure_milestone(title:str) -> str:
+    if not title:
+        return ""
+    try:
+        data = sh(["gh", "issue", "milestone", "list", "--repo", REPO, "--json", "title,number"]) or "[]"
+        items = json.loads(data)
+        for it in items:
+            if it.get("title") == title:
+                return title
+        # create if not found
+        sh(["gh", "issue", "milestone", "create", "--repo", REPO, "--title", title])
+        return title
+    except Exception:
+        return ""
+
+
 def main():
     if not TASKS_FILE.exists():
         raise SystemExit(f"tasks.md not found at {TASKS_FILE}")
@@ -239,6 +262,15 @@ def main():
 
     ensure_out_dir()
     tasks = parse_tasks(TASKS_FILE.read_text())
+    # Optional phase filtering
+    allowed = set([p.lstrip("phase:") for p in PHASES]) if PHASES else None
+    if allowed:
+        filtered = []
+        for t in tasks:
+            pn = phase_number(t.get("phase",""))
+            if pn and pn in allowed:
+                filtered.append(t)
+        tasks = filtered
     # Ensure labels exist
     base_labels = set(LABELS_DEFAULT)
     prios = {"priority:high": "High priority", "priority:medium": "Medium priority", "priority:low": "Low priority"}
@@ -248,6 +280,9 @@ def main():
         for lb in sorted(needed):
             desc = prios.get(lb, phases.get(lb, ""))
             ensure_label(lb, description=desc)
+    milestone = ""
+    if not DRY_RUN and MILESTONE_TITLE:
+        milestone = ensure_milestone(MILESTONE_TITLE)
     results = []
     for t in tasks:
         title = f"[{t['id']}] {t['title']}"
@@ -273,7 +308,16 @@ def main():
                 url = existing.get("htmlURL")
                 created = False
             else:
-                url = create_issue(REPO, title, body, labels, ASSIGNEE)
+                if milestone:
+                    # gh issue create supports --milestone
+                    url = create_issue(REPO, f"{title}", body, labels, ASSIGNEE)
+                    # assign milestone post-creation to be safe
+                    try:
+                        sh(["gh", "issue", "edit", url, "--repo", REPO, "--milestone", milestone])
+                    except Exception:
+                        pass
+                else:
+                    url = create_issue(REPO, title, body, labels, ASSIGNEE)
                 created = True
             added = False
             if url and not url.startswith("(dry-run)"):

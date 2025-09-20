@@ -40,5 +40,7 @@ jobs:
           DRY_RUN: "false"
           LABELS: task
           ASSIGNEE: ""
+          PHASES: "2"
+          MILESTONE_TITLE: "Phase 2 — WS Session & Telemetry"
         run: |
           python3 scripts/create_issues_from_tasks.py
