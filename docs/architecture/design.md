@@ -226,11 +226,64 @@ type EquipmentError struct {
 }
 ```
 
+### Error Codes and Types
+| Code | Type | Description | Retry Recommended |
+|------|------|-------------|------------------|
+| 1001 | `invalid_item` | Item ID not found in templates | No |
+| 1002 | `insufficient_skill` | Player lacks required skill level | No |
+| 1003 | `slot_mismatch` | Item incompatible with target slot | No |
+| 1004 | `cooldown_active` | Equipment still in cooldown period | No |
+| 1005 | `state_corruption` | Player equipment state corrupted | Yes |
+| 1006 | `database_timeout` | Database operation timed out | Yes |
+| 1007 | `optimistic_conflict` | Concurrent modification detected | Yes |
+| 1008 | `template_unavailable` | Item templates not loaded | Yes |
+| 1009 | `network_partition` | Database connectivity lost | Yes |
+| 1010 | `cache_overflow` | Equipment cache at capacity | Yes |
+
+### Error Matrix
+
+The following matrix defines specific error conditions, their detection criteria, response procedures, and expected outcomes:
+
+| Error Condition | Detection | Immediate Response | Recovery Procedure | Expected Outcome | Monitoring Alert |
+|----------------|-----------|-------------------|-------------------|------------------|------------------|
+| **Template Loading Failure** | `LoadTemplates()` returns error | Use cached templates, log ERROR | Retry every 30s for 5 attempts, then every 5min | Templates reload or fallback maintained | `equipment_template_load_failed` |
+| **Database Connection Timeout** | Query timeout >5s | Queue operation, return temp error | Exponential backoff: 1s, 2s, 4s, then circuit breaker | Operation completes or fails gracefully | `equipment_db_timeout` |
+| **Player State Corruption** | Invalid JSON or missing required fields | Isolate player, default equipment state | Restore from latest backup, notify admins | Player restored or isolated until manual fix | `equipment_state_corruption` |
+| **Optimistic Lock Conflict** | Version mismatch on update | Return conflict error to client | Retry with fresh state, max 3 attempts | Update succeeds or operation rejected | `equipment_lock_conflict` |
+| **Invalid Item ID** | Item not in template cache | Reject operation, log WARN | No retry, await client correction | Operation rejected with clear error | None (expected user error) |
+| **Insufficient Skill Level** | Requirements check fails | Reject operation, return requirements | No retry, await character progression | Operation rejected with skill requirements | None (expected game rule) |
+| **Slot Type Mismatch** | Item type incompatible with slot | Reject operation, log WARN | No retry, await client correction | Operation rejected with slot info | None (expected user error) |
+| **Equipment Cooldown Active** | Current time < cooldown expiry | Reject operation, return remaining time | No retry, await cooldown expiration | Operation rejected with cooldown info | None (expected game rule) |
+| **Network Partition** | Multiple consecutive DB failures | Enable degraded mode, cache-only | Sync when connectivity restored | Operations resume or manual intervention | `equipment_network_partition` |
+| **Memory Cache Overflow** | Cache size > 100MB or >10k players | Start cache eviction, log WARN | LRU eviction of inactive players | Memory usage stabilized | `equipment_cache_overflow` |
+| **Database Schema Mismatch** | Migration version conflict | Refuse to start, log FATAL | Manual intervention required | Service starts after schema fix | `equipment_schema_mismatch` |
+| **Concurrent Equipment Operations** | Race condition detected | Serialize operations per player | Queue subsequent operations | All operations complete in order | None (handled internally) |
+
 ### Recovery Procedures
-1. **Template Loading Failure**: Use cached templates, log error, retry periodically
-2. **Database Timeout**: Queue operations, retry with exponential backoff
-3. **State Corruption**: Isolate affected player, restore from backup
-4. **Optimistic Lock Conflicts**: Retry with fresh state, maximum 3 attempts
+
+**1. Template Loading Failure**
+- **Immediate**: Continue with cached templates if available
+- **Short-term**: Retry loading every 30 seconds for 5 attempts
+- **Long-term**: Retry every 5 minutes until success or manual intervention
+- **Fallback**: Minimal default templates to prevent complete failure
+
+**2. Database Timeout**
+- **Immediate**: Queue operation in memory buffer (max 1000 operations)
+- **Retry**: Exponential backoff: 1s, 2s, 4s, then circuit breaker for 30s
+- **Circuit Breaker**: Fail fast for 30s, then attempt single test operation
+- **Fallback**: Return cached state for read operations
+
+**3. State Corruption**
+- **Immediate**: Isolate affected player, log detailed corruption info
+- **Recovery**: Attempt restore from latest backup within 5 minutes
+- **Escalation**: Alert administrators if backup restore fails
+- **Fallback**: Default empty equipment state to maintain player session
+
+**4. Optimistic Lock Conflicts**
+- **Immediate**: Return conflict error with current state version
+- **Retry**: Client should fetch fresh state and retry operation
+- **Limit**: Maximum 3 automatic retries with 100ms delays
+- **Escalation**: Log if conflicts exceed 5% of operations
 
 ---
 
