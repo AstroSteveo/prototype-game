@@ -1,4 +1,3 @@
----
 name: Sync items to Game Roadmap project
 
 "on":
@@ -21,7 +20,8 @@ jobs:
   sync-to-project:
     if: >-
       github.actor != 'dependabot[bot]' &&
-      vars.PROJECT_URL != ''
+      vars.PROJECT_URL != '' &&
+      secrets.PROJECTS_TOKEN != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
