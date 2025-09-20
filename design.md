@@ -74,8 +74,8 @@ Purpose: Capture technical architecture, data flows, interfaces, and design deci
 - `Engine.RestorePlayerState(playerID, persisted, templates)` → error
 - `Engine.MetricsSnapshot()` → metrics struct
 
-### Persistence Store (conceptual)
-- `state.Store` (from `internal/state`): methods for saving/loading player state (inventory, equipment, skills), likely using JSONB or normalized tables (see `postgres_store.go`).
+### Persistence Store
+- `state.Store` (from `internal/state`): provides methods for saving and loading player state (inventory, equipment, skills) using a PostgreSQL backend. The implementation in `postgres_store.go` stores player state in a `player_state` table, utilizing JSONB columns to persist inventory, equipment, and skills data efficiently.
 
 ## Data Models (conceptual)
 - Entity: `{ id: string, kind: enum{player,bot}, pos: {x,z}, vel: {x,z}, name?: string }`
