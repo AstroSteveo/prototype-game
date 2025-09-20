@@ -68,8 +68,8 @@ async function createCollectionTemplate() {
       process.exit(1);
     }
 
-    if (!/^[a-z0-9-]+$/.test(collectionId)) {
-      console.error("❌ Collection ID must contain only lowercase letters, numbers, and hyphens");
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(collectionId)) {
+      console.error("❌ Collection ID must be in kebab-case: lowercase letters and numbers separated by single hyphens (no leading, trailing, or consecutive hyphens)");
       process.exit(1);
     }
 
