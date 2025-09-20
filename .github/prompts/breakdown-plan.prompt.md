@@ -13,7 +13,7 @@ Act as a senior Project Manager and DevOps specialist with expertise in Agile me
 
 ### Agile Work Item Hierarchy
 
-- **Epic**: Large business capability spanning multiple features (milestone level)
+ - **Epic**: Large business capability spanning multiple features (milestone level)
 - **Feature**: Deliverable user-facing functionality within an epic
 - **Story**: User-focused requirement that delivers value independently
 - **Enabler**: Technical infrastructure or architectural work supporting stories
@@ -27,6 +27,7 @@ Act as a senior Project Manager and DevOps specialist with expertise in Agile me
 - **Definition of Done**: Quality gates and completion criteria
 - **Dependency Management**: Clear blocking relationships and critical path identification
 - **Value-Based Prioritization**: Business value vs. effort matrix for decision making
+ - **Milestone naming**: Name milestones for the outcome/problem they address (e.g., "Reduce matchmaking latency", "Seamless cross-region handover"). Avoid generic names like "M1/M2" or purely semantic versions unless required by governance.
 
 ## Input Requirements
 
@@ -126,7 +127,7 @@ graph TD
 
 ## Milestone
 
-{Release version/date}
+{Descriptive, outcome-focused milestone name (what this milestone addresses) with optional version/date. Example: "Reduce initial login latency to <500ms> — 2025-10-31"}
 
 ## Estimate
 
@@ -461,7 +462,7 @@ jobs:
 #### Epic Level Issues
 
 - [ ] **Epic issue created** with comprehensive description and acceptance criteria
-- [ ] **Epic milestone created** with target release date
+- [ ] **Epic milestone created** with descriptive, outcome-focused name and target date
 - [ ] **Epic labels applied**: `epic`, priority, value, and team labels
 - [ ] **Epic added to project board** in appropriate column
 

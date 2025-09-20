@@ -1,0 +1,117 @@
+name: Create Meaningful Milestones (One-Shot)
+
+on:
+  push:
+    paths:
+      - .github/workflows/create-meaningful-milestones.yml
+  workflow_dispatch:
+    inputs:
+      base_due:
+        description: 'Optional ISO8601 base due date (e.g., 2025-10-01T00:00:00Z)'
+        required: false
+      cadence_days:
+        description: 'Optional days between milestones (integer)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  milestones:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure jq is available
+        run: |
+          jq -V || (sudo apt-get update && sudo apt-get install -y jq)
+
+      - name: Create or update milestones (idempotent)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE_DUE: ${{ github.event.inputs.base_due }}
+          CADENCE_DAYS: ${{ github.event.inputs.cadence_days }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          desired='[
+            {"title":"WebSocket stability and reconnect continuity","description":"No message loss; seamless session resume under transient drops"},
+            {"title":"Seamless AOI handover across cells/regions","description":"Handover pause <100ms; continuity validated by tests"},
+            {"title":"Inventory correctness and equip validation","description":"Consistent deltas; strict server-side equip validation"},
+            {"title":"Persistence scalability and durability (Postgres)","description":"Higher write throughput; recovery durability; integration tests"},
+            {"title":"Telemetry and metrics visibility (SLIs/SLOs)","description":"Actionable metrics across transport/sim/state; dashboards/alerts"},
+            {"title":"Security hardening for join/auth/session","description":"Auth/session integrity; transport security; OWASP coverage"}
+          ]'
+
+          # Fetch existing milestones (all states)
+          existing=$(curl -fsSL -H "authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$REPO/milestones?state=all&per_page=100")
+
+          # Optional scheduling
+          parse_date() {
+            date -u -d "$1" +%s 2>/dev/null || echo ""
+          }
+
+          base_ts=""; [[ -n "${BASE_DUE:-}" ]] && base_ts=$(parse_date "$BASE_DUE")
+          cadence=""; [[ -n "${CADENCE_DAYS:-}" ]] && cadence=$CADENCE_DAYS || cadence=""
+
+          index=0
+          echo "$desired" | jq -c '.[]' | while read -r item; do
+            title=$(echo "$item" | jq -r .title)
+            desc=$(echo "$item" | jq -r .description)
+
+            due_on=""
+            if [[ -n "$base_ts" && -n "$cadence" ]]; then
+              offset_days=$(( index * cadence ))
+              due_on=$(date -u -d "@$(( base_ts + offset_days*24*3600 ))" +%Y-%m-%dT%H:%M:%SZ)
+            fi
+
+            # Check if a milestone already exists with this title
+            num=$(echo "$existing" | jq \
+              --arg t "$title" -r '.[] | select(.title == $t) | .number' | head -n1)
+
+            if [[ -n "$num" ]]; then
+              echo "Updating milestone #$num: $title"
+              body=( -H "authorization: Bearer $GH_TOKEN" -H "accept: application/vnd.github+json" \
+                     -X PATCH "https://api.github.com/repos/$REPO/milestones/$num" \
+                     -d "{\"title\":\"$title\",\"description\":\"$desc\"${due_on:+,\"due_on\":\"$due_on\"}}" )
+              curl -fsSL -o /dev/null "${body[@]}"
+            else
+              echo "Creating milestone: $title"
+              body=( -H "authorization: Bearer $GH_TOKEN" -H "accept: application/vnd.github+json" \
+                     -X POST "https://api.github.com/repos/$REPO/milestones" \
+                     -d "{\"title\":\"$title\",\"description\":\"$desc\"${due_on:+,\"due_on\":\"$due_on\"}}" )
+              curl -fsSL -o /dev/null "${body[@]}"
+            fi
+
+            index=$(( index + 1 ))
+          done
+
+          # Rename simple placeholders M1..M6 if present, mapping in order
+          mapfile -t placeholders < <(printf "M1\nM2\nM3\nM4\nM5\nM6\n")
+          i=0
+          for ph in "${placeholders[@]}"; do
+            new_title=$(echo "$desired" | jq -r ".[$i].title" 2>/dev/null || true)
+            [[ -z "$new_title" ]] && break
+            num=$(echo "$existing" | jq --arg t "$ph" -r '.[] | select(.title == $t) | .number' | head -n1 || true)
+            if [[ -n "$num" ]]; then
+              echo "Renaming placeholder $ph -> $new_title (#$num)"
+              curl -fsSL -H "authorization: Bearer $GH_TOKEN" -H "accept: application/vnd.github+json" \
+                -X PATCH "https://api.github.com/repos/$REPO/milestones/$num" \
+                -d "{\"title\":\"$new_title\"}" -o /dev/null
+            fi
+            i=$(( i + 1 ))
+          done
+
+      - name: Self-cleanup (remove this workflow)
+        if: always()
+        run: |
+          set -e
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git rm -f .github/workflows/create-meaningful-milestones.yml || true
+          git commit -m "chore: remove one-shot milestone workflow [skip ci]" || exit 0
+          git push origin "${GITHUB_REF_NAME:-${GITHUB_HEAD_REF:-${GITHUB_REF##*/}}}"
