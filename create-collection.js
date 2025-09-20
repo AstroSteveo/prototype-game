@@ -95,7 +95,7 @@ async function createCollectionTemplate() {
       .join(" ");
 
     let collectionName = await prompt(`Collection name (default: ${defaultName}): `);
-    if (!collectionName.trim()) {
+    if (!(collectionName || '').trim()) {
       collectionName = defaultName;
     }
 
