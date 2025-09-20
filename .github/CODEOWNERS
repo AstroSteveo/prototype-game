@@ -4,9 +4,6 @@
 # Backend Go code
 /backend/** @AstroSteveo
 
-# Frontend Godot code
-/client/** @AstroSteveo
-
 # Docs
 /docs/** @AstroSteveo
 
