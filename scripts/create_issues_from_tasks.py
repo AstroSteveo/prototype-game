@@ -226,10 +226,15 @@ def phase_label(phase:str):
     return None
 
 
+def slugify(text:str):
+    s = re.sub(r"[^a-zA-Z0-9]+", "-", text).strip("-")
+    return s.lower()
+
+
 def main():
     if not TASKS_FILE.exists():
         raise SystemExit(f"tasks.md not found at {TASKS_FILE}")
-    if not gh_available():
+    if not DRY_RUN and not gh_available():
         raise SystemExit("GitHub CLI (gh) not available or not authenticated. Install gh and run `gh auth login`.")
 
     ensure_out_dir()
@@ -247,6 +252,9 @@ def main():
     for t in tasks:
         title = f"[{t['id']}] {t['title']}"
         body = build_issue_body(t)
+        # Always write body to file for traceability
+        fname = f"{t['id']}_{slugify(t['title'])}.md"
+        (OUT_DIR / fname).write_text(body)
         labels = LABELS_DEFAULT.copy()
         pl = priority_label(t.get("priority",""))
         if pl:
@@ -255,7 +263,7 @@ def main():
         if ph:
             labels.append(ph)
 
-        existing = issue_exists(t['id'], title)
+        existing = issue_exists(t['id'], title) if not DRY_RUN else None
         if DRY_RUN:
             url = existing.get("htmlURL") if existing else "(dry-run)"
             created = False if existing else True

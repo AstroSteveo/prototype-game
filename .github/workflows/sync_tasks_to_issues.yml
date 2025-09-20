@@ -1,0 +1,44 @@
+name: Sync Tasks to Issues
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - 'tasks.md'
+      - 'scripts/create_issues_from_tasks.py'
+
+permissions:
+  contents: read
+  issues: write
+  projects: write
+
+jobs:
+  create_issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Authenticate gh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${GITHUB_TOKEN}" | gh auth login --with-token
+          gh auth status -h github.com
+
+      - name: Sync tasks to issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_OWNER: AstroSteveo
+          PROJECT_NUMBER: "2"
+          REPO: AstroSteveo/prototype-game
+          DRY_RUN: "false"
+          LABELS: task
+          ASSIGNEE: ""
+        run: |
+          python3 scripts/create_issues_from_tasks.py
