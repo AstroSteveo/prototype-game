@@ -1,3 +1,14 @@
+# Create GitHub issues from tasks.md and add to Project 2
+.PHONY: issues
+issues:
+	@echo "Creating issues from tasks.md (set DRY_RUN=true for no-op)"
+	PROJECT_OWNER?=AstroSteveo
+	PROJECT_NUMBER?=2
+	REPO?=AstroSteveo/prototype-game
+	DRY_RUN?=false
+	LABELS?=task
+	ASSIGNEE?=
+	PROJECT_OWNER=$(PROJECT_OWNER) PROJECT_NUMBER=$(PROJECT_NUMBER) REPO=$(REPO) DRY_RUN=$(DRY_RUN) LABELS=$(LABELS) ASSIGNEE=$(ASSIGNEE) python3 scripts/create_issues_from_tasks.py
 SHELL := /bin/bash
 
 # Paths
