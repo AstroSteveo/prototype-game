@@ -14,6 +14,7 @@ LABELS_DEFAULT = os.environ.get("LABELS", "task").split(",")
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower() in ("1","true","yes","on")
 PHASES = [p.strip() for p in os.environ.get("PHASES", "").split(",") if p.strip()]
 MILESTONE_TITLE = os.environ.get("MILESTONE_TITLE", "")
+MILESTONES_FROM_PHASE = os.environ.get("MILESTONES_FROM_PHASE", "false").lower() in ("1","true","yes","on")
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS_FILE = ROOT / "tasks.md"
@@ -283,6 +284,8 @@ def main():
     milestone = ""
     if not DRY_RUN and MILESTONE_TITLE:
         milestone = ensure_milestone(MILESTONE_TITLE)
+    # cache for per-phase milestones
+    phase_milestones = {}
     results = []
     for t in tasks:
         title = f"[{t['id']}] {t['title']}"
@@ -299,6 +302,15 @@ def main():
             labels.append(ph)
 
         existing = issue_exists(t['id'], title) if not DRY_RUN else None
+        # Determine milestone for this task if per-phase enabled
+        t_milestone = ""
+        if not DRY_RUN and MILESTONES_FROM_PHASE:
+            ph_title = t.get("phase", "").strip()
+            if ph_title:
+                if ph_title not in phase_milestones:
+                    phase_milestones[ph_title] = ensure_milestone(ph_title)
+                t_milestone = phase_milestones.get(ph_title, "")
+
         if DRY_RUN:
             url = existing.get("htmlURL") if existing else "(dry-run)"
             created = False if existing else True
@@ -307,17 +319,22 @@ def main():
             if existing:
                 url = existing.get("htmlURL")
                 created = False
+                # Assign milestone for existing issue if requested
+                try:
+                    ml = milestone or t_milestone
+                    if ml and url:
+                        sh(["gh", "issue", "edit", url, "--repo", REPO, "--milestone", ml])
+                except Exception:
+                    pass
             else:
-                if milestone:
-                    # gh issue create supports --milestone
-                    url = create_issue(REPO, f"{title}", body, labels, ASSIGNEE)
-                    # assign milestone post-creation to be safe
-                    try:
-                        sh(["gh", "issue", "edit", url, "--repo", REPO, "--milestone", milestone])
-                    except Exception:
-                        pass
-                else:
-                    url = create_issue(REPO, title, body, labels, ASSIGNEE)
+                url = create_issue(REPO, title, body, labels, ASSIGNEE)
+                # assign milestone (single or per-phase) post-creation
+                try:
+                    ml = milestone or t_milestone
+                    if ml and url:
+                        sh(["gh", "issue", "edit", url, "--repo", REPO, "--milestone", ml])
+                except Exception:
+                    pass
                 created = True
             added = False
             if url and not url.startswith("(dry-run)"):
