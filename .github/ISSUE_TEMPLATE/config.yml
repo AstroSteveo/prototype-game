@@ -1,9 +1,0 @@
-blank_issues_enabled: false
-contact_links:
-  - name: Developer Guide
-    url: https://github.com/AstroSteveo/prototype-game/blob/main/docs/development/developer-guide.md
-    about: Build, run, and test commands
-  - name: Backlog
-    url: https://github.com/AstroSteveo/prototype-game/blob/main/docs/process/BACKLOG.md
-    about: User stories and milestones
-

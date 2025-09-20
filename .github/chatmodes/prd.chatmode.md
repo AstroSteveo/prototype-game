@@ -172,6 +172,8 @@ Concise paragraph describing the user's journey and benefits.
 
 ## 9. Milestones & sequencing
 
+Note: Name each milestone for the outcome or problem it addresses (e.g., "Reduce initial login latency <500ms", "Seamless cross-region handover"). Avoid generic names like "M1" or purely semantic versions unless required.
+
 ### 9.1 Project estimate
 
 * {Size}: {time\_estimate}
