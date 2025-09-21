@@ -27,7 +27,7 @@ func TestT022_HandoverHysteresisAndAntiThrash(t *testing.T) {
 		// Move player close to border but not past hysteresis
 		// Border at x=10, hysteresis=2.0, so position at x=11.5 should NOT trigger handover
 		eng.DevSetVelocity("p1", spatial.Vec2{X: 50.0, Z: 0}) // fast eastward
-		eng.Step(time.Millisecond * 130)                     // Move to ~x=11.5
+		eng.Step(time.Millisecond * 130)                      // Move to ~x=11.5
 
 		player1, _ := eng.GetPlayer("p1")
 		handovers1 := eng.MetricsSnapshot().Handovers
@@ -176,24 +176,24 @@ func TestT022_AcceptanceCriteria(t *testing.T) {
 
 	// Start player in cell (0,0)
 	_ = eng.DevSpawn("p1", "TestPlayer", spatial.Vec2{X: 5.0, Z: 5.0})
-	
+
 	// Record initial state
 	initialHandovers := eng.MetricsSnapshot().Handovers
-	
+
 	// Move player to trigger exactly one handover
 	beforeHandover := time.Now()
 	eng.DevSetVelocity("p1", spatial.Vec2{X: 50.0, Z: 0}) // fast eastward
-	eng.Step(time.Millisecond * 140) // cross border + hysteresis
-	
+	eng.Step(time.Millisecond * 140)                      // cross border + hysteresis
+
 	// Check final state
 	finalPlayer, ok := eng.GetPlayer("p1")
 	if !ok {
 		t.Fatal("Player not found after movement")
 	}
 	finalHandovers := eng.MetricsSnapshot().Handovers
-	
+
 	// ACCEPTANCE CRITERIA VALIDATION:
-	
+
 	// 1. "Handover latency measured"
 	if finalPlayer.HandoverAt.IsZero() {
 		t.Error("❌ ACCEPTANCE CRITERIA FAILED: Handover latency not measured (HandoverAt timestamp not set)")
@@ -205,7 +205,7 @@ func TestT022_AcceptanceCriteria(t *testing.T) {
 			t.Logf("✅ ACCEPTANCE CRITERIA PASSED: Handover latency measured (%v)", latency)
 		}
 	}
-	
+
 	// 2. "event emitted once per change"
 	handoverCount := finalHandovers - initialHandovers
 	if handoverCount != 1 {
@@ -213,7 +213,7 @@ func TestT022_AcceptanceCriteria(t *testing.T) {
 	} else {
 		t.Logf("✅ ACCEPTANCE CRITERIA PASSED: Event emitted once per change (%d handover)", handoverCount)
 	}
-	
+
 	// Verify the handover actually occurred
 	if finalPlayer.OwnedCell.Cx != 1 || finalPlayer.OwnedCell.Cz != 0 {
 		t.Errorf("Expected handover to cell (1,0), got (%d,%d)", finalPlayer.OwnedCell.Cx, finalPlayer.OwnedCell.Cz)

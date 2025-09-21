@@ -110,7 +110,7 @@ func TestT031_InventoryEquipmentDeltas(t *testing.T) {
 	found := waitForStateUpdate("inventory delta", func(stateData map[string]interface{}) bool {
 		if inventory, hasInventory := stateData["inventory"]; hasInventory {
 			t.Log("T-031 SUCCESS: State message contains inventory delta when version changes")
-			
+
 			invMap := inventory.(map[string]interface{})
 			if items, hasItems := invMap["items"]; hasItems {
 				itemsArray := items.([]interface{})
@@ -160,7 +160,7 @@ func TestT031_InventoryEquipmentDeltas(t *testing.T) {
 
 	var foundEquipmentDelta bool
 	var foundInventoryDeltaAfterEquip bool
-	
+
 	// Wait for both equipment and inventory deltas
 	for i := 0; i < 10 && (!foundEquipmentDelta || !foundInventoryDeltaAfterEquip); i++ {
 		waitForStateUpdate("equipment/inventory deltas", func(stateData map[string]interface{}) bool {
@@ -168,12 +168,12 @@ func TestT031_InventoryEquipmentDeltas(t *testing.T) {
 				t.Log("T-031 SUCCESS: State message contains equipment delta when version changes")
 				foundEquipmentDelta = true
 			}
-			
+
 			if _, hasInventory := stateData["inventory"]; hasInventory && !foundInventoryDeltaAfterEquip {
 				foundInventoryDeltaAfterEquip = true
 				t.Log("T-031 SUCCESS: Inventory delta also sent when equipment changes")
 			}
-			
+
 			return foundEquipmentDelta && foundInventoryDeltaAfterEquip
 		})
 	}
@@ -200,6 +200,6 @@ func TestT031_InventoryEquipmentDeltas(t *testing.T) {
 
 	t.Log("T-031 ACCEPTANCE CRITERIA VALIDATED: State contains deltas when versions change")
 	t.Log("✓ Inventory deltas included when inventory version changes")
-	t.Log("✓ Equipment deltas included when equipment version changes") 
+	t.Log("✓ Equipment deltas included when equipment version changes")
 	t.Log("✓ Skills deltas included when skills version changes")
 }

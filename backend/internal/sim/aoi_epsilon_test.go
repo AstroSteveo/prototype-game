@@ -13,16 +13,16 @@ import (
 // This specifically addresses the requirement for epsilon tolerance in AOI calculations.
 func TestEpsilonToleranceAtBoundary(t *testing.T) {
 	e := NewEngine(Config{CellSize: 10, AOIRadius: 5, TickHz: 20, SnapshotHz: 10, HandoverHysteresisM: 2})
-	
+
 	// Place anchor player at origin
 	anchor := e.DevSpawn("anchor", "Anchor", spatial.Vec2{X: 0, Z: 0})
-	
+
 	// Test cases for epsilon boundary conditions
 	testCases := []struct {
-		name       string
-		pos        spatial.Vec2
-		shouldSee  bool
-		reason     string
+		name      string
+		pos       spatial.Vec2
+		shouldSee bool
+		reason    string
 	}{
 		{
 			name:      "exactly_at_radius",
@@ -55,16 +55,16 @@ func TestEpsilonToleranceAtBoundary(t *testing.T) {
 			reason:    "floating point precision edge case should be handled by epsilon",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Add entity at test position
 			entityID := "test_" + tc.name
 			e.AddOrUpdatePlayer(entityID, tc.name, tc.pos, spatial.Vec2{})
-			
+
 			// Query AOI from anchor position
 			results := e.QueryAOI(anchor.Pos, e.cfg.AOIRadius, anchor.ID)
-			
+
 			// Check if entity is in results
 			found := false
 			for _, ent := range results {
@@ -73,7 +73,7 @@ func TestEpsilonToleranceAtBoundary(t *testing.T) {
 					break
 				}
 			}
-			
+
 			// Validate expectation
 			if found != tc.shouldSee {
 				actualDist := math.Sqrt(spatial.Dist2(tc.pos, anchor.Pos))
@@ -81,7 +81,7 @@ func TestEpsilonToleranceAtBoundary(t *testing.T) {
 					"Position: (%.10f, %.10f), Distance: %.10f, Reason: %s",
 					tc.name, tc.shouldSee, found, tc.pos.X, tc.pos.Z, actualDist, tc.reason)
 			}
-			
+
 			// Note: Entity remains for subsequent tests (no RemovePlayer method available)
 		})
 	}
@@ -92,19 +92,19 @@ func TestEpsilonToleranceAtBoundary(t *testing.T) {
 func Test3x3CellNeighborhoodCoverage(t *testing.T) {
 	cellSize := 10.0
 	aoiRadius := 15.0 // Large enough to cover entire 3x3 neighborhood
-	
+
 	e := NewEngine(Config{CellSize: cellSize, AOIRadius: aoiRadius, TickHz: 20, SnapshotHz: 10, HandoverHysteresisM: 2})
-	
+
 	// Place query player at center of cell (0,0)
 	queryPlayer := e.DevSpawn("query", "Query", spatial.Vec2{X: 5, Z: 5})
-	
+
 	// Define all 9 cells in 3x3 neighborhood
 	expectedCells := []spatial.CellKey{
 		{Cx: -1, Cz: -1}, {Cx: 0, Cz: -1}, {Cx: 1, Cz: -1},
-		{Cx: -1, Cz: 0},  {Cx: 0, Cz: 0},  {Cx: 1, Cz: 0},
-		{Cx: -1, Cz: 1},  {Cx: 0, Cz: 1},  {Cx: 1, Cz: 1},
+		{Cx: -1, Cz: 0}, {Cx: 0, Cz: 0}, {Cx: 1, Cz: 0},
+		{Cx: -1, Cz: 1}, {Cx: 0, Cz: 1}, {Cx: 1, Cz: 1},
 	}
-	
+
 	// Place one entity in each cell of the 3x3 neighborhood
 	entityPositions := make(map[string]spatial.Vec2)
 	for _, cell := range expectedCells {
@@ -116,20 +116,20 @@ func Test3x3CellNeighborhoodCoverage(t *testing.T) {
 		entityID := fmt.Sprintf("entity_%d_%d", cell.Cx, cell.Cz)
 		e.AddOrUpdatePlayer(entityID, entityID, pos, spatial.Vec2{})
 		entityPositions[entityID] = pos
-		
-		t.Logf("Placed entity %s at (%.1f, %.1f) in cell (%d, %d)", 
+
+		t.Logf("Placed entity %s at (%.1f, %.1f) in cell (%d, %d)",
 			entityID, pos.X, pos.Z, cell.Cx, cell.Cz)
 	}
-	
+
 	// Query AOI from the center position
 	results := e.QueryAOI(queryPlayer.Pos, aoiRadius, queryPlayer.ID)
-	
+
 	// Verify all entities in 3x3 neighborhood are found
 	foundEntities := make(map[string]bool)
 	for _, ent := range results {
 		foundEntities[ent.ID] = true
 	}
-	
+
 	// Check each expected entity (excluding the query player which should not be in AOI results)
 	expectedInAOI := 0
 	for entityID, pos := range entityPositions {
@@ -140,10 +140,10 @@ func Test3x3CellNeighborhoodCoverage(t *testing.T) {
 			}
 			continue
 		}
-		
+
 		distance := math.Sqrt(spatial.Dist2(pos, queryPlayer.Pos))
 		withinRadius := distance <= aoiRadius
-		
+
 		if withinRadius {
 			expectedInAOI++
 			if !foundEntities[entityID] {
@@ -152,15 +152,15 @@ func Test3x3CellNeighborhoodCoverage(t *testing.T) {
 		} else if foundEntities[entityID] {
 			t.Errorf("Entity %s at distance %.2f should not be in AOI but was found", entityID, distance)
 		}
-		
-		t.Logf("Entity %s: distance=%.2f, within_radius=%v, found=%v", 
+
+		t.Logf("Entity %s: distance=%.2f, within_radius=%v, found=%v",
 			entityID, distance, withinRadius, foundEntities[entityID])
 	}
-	
+
 	if len(results) != expectedInAOI {
 		t.Errorf("Expected %d entities in AOI, found %d", expectedInAOI, len(results))
 	}
-	
+
 	t.Logf("✓ 3x3 neighborhood coverage validated: %d entities found", len(results))
 }
 
@@ -169,9 +169,9 @@ func Test3x3CellNeighborhoodCoverage(t *testing.T) {
 func TestAOICellBoundaryPrecision(t *testing.T) {
 	cellSize := 10.0
 	aoiRadius := 8.0
-	
+
 	e := NewEngine(Config{CellSize: cellSize, AOIRadius: aoiRadius, TickHz: 20, SnapshotHz: 10, HandoverHysteresisM: 2})
-	
+
 	// Test positions exactly on cell boundaries
 	testCases := []struct {
 		name        string
@@ -188,7 +188,7 @@ func TestAOICellBoundaryPrecision(t *testing.T) {
 			description: "entity in adjacent cell should be visible when query is on boundary",
 		},
 		{
-			name:        "query_on_z_boundary", 
+			name:        "query_on_z_boundary",
 			queryPos:    spatial.Vec2{X: 5.0, Z: 10.0}, // Exactly on Z boundary between cells
 			entityPos:   spatial.Vec2{X: 5.0, Z: 5.0},  // In adjacent cell, within range
 			shouldSee:   true,
@@ -203,26 +203,26 @@ func TestAOICellBoundaryPrecision(t *testing.T) {
 		},
 		{
 			name:        "epsilon_boundary_cross",
-			queryPos:    spatial.Vec2{X: 9.999999999, Z: 5.0}, // Just inside cell boundary
+			queryPos:    spatial.Vec2{X: 9.999999999, Z: 5.0},  // Just inside cell boundary
 			entityPos:   spatial.Vec2{X: 10.000000001, Z: 5.0}, // Just outside cell boundary
 			shouldSee:   true,
 			description: "very close entities across boundaries should be visible due to epsilon",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Place query player
 			queryID := "query_" + tc.name
 			e.AddOrUpdatePlayer(queryID, queryID, tc.queryPos, spatial.Vec2{})
-			
+
 			// Place target entity
 			entityID := "entity_" + tc.name
 			e.AddOrUpdatePlayer(entityID, entityID, tc.entityPos, spatial.Vec2{})
-			
+
 			// Query AOI
 			results := e.QueryAOI(tc.queryPos, aoiRadius, queryID)
-			
+
 			// Check if entity is found
 			found := false
 			for _, ent := range results {
@@ -231,20 +231,20 @@ func TestAOICellBoundaryPrecision(t *testing.T) {
 					break
 				}
 			}
-			
+
 			// Calculate actual distance
 			distance := math.Sqrt(spatial.Dist2(tc.entityPos, tc.queryPos))
-			
+
 			// Validate result
 			if found != tc.shouldSee {
 				t.Errorf("Test case %s failed: expected found=%v, got found=%v\n"+
 					"Query pos: (%.10f, %.10f), Entity pos: (%.10f, %.10f)\n"+
 					"Distance: %.10f, Description: %s",
-					tc.name, tc.shouldSee, found, 
+					tc.name, tc.shouldSee, found,
 					tc.queryPos.X, tc.queryPos.Z, tc.entityPos.X, tc.entityPos.Z,
 					distance, tc.description)
 			}
-			
+
 			// Note: Entities remain in engine (no RemovePlayer method available)
 		})
 	}
@@ -254,10 +254,10 @@ func TestAOICellBoundaryPrecision(t *testing.T) {
 // even when dealing with cells containing many entities.
 func TestAOIPerformanceWithLargeCellCounts(t *testing.T) {
 	e := NewEngine(Config{CellSize: 50, AOIRadius: 75, TickHz: 20, SnapshotHz: 10, HandoverHysteresisM: 2})
-	
+
 	// Place query player at center
 	queryPlayer := e.DevSpawn("query", "Query", spatial.Vec2{X: 25, Z: 25})
-	
+
 	// Populate 3x3 neighborhood with many entities
 	entityCount := 0
 	for cx := -1; cx <= 1; cx++ {
@@ -268,31 +268,31 @@ func TestAOIPerformanceWithLargeCellCounts(t *testing.T) {
 				// Random position within the cell
 				x := float64(cx)*50 + 10 + float64(i%5)*8 // Spread entities across cell
 				z := float64(cz)*50 + 10 + float64(i/5)*8
-				
+
 				entityID := fmt.Sprintf("perf_entity_%d", entityCount)
 				e.AddOrUpdatePlayer(entityID, entityID, spatial.Vec2{X: x, Z: z}, spatial.Vec2{})
 			}
 		}
 	}
-	
+
 	// Measure AOI query performance
 	iterations := 100
 	for i := 0; i < iterations; i++ {
 		results := e.QueryAOI(queryPlayer.Pos, e.cfg.AOIRadius, queryPlayer.ID)
-		
+
 		// Basic validation that we get reasonable results
 		if len(results) == 0 {
 			t.Errorf("Expected some entities in AOI, got 0")
 		}
-		
+
 		if len(results) > entityCount {
 			t.Errorf("AOI returned more entities (%d) than exist (%d)", len(results), entityCount)
 		}
 	}
-	
+
 	// Final comprehensive query to validate correctness
 	finalResults := e.QueryAOI(queryPlayer.Pos, e.cfg.AOIRadius, queryPlayer.ID)
-	
+
 	// Count entities that should be within radius
 	expectedInRadius := 0
 	for i := 1; i <= entityCount; i++ {
@@ -304,12 +304,12 @@ func TestAOIPerformanceWithLargeCellCounts(t *testing.T) {
 			}
 		}
 	}
-	
+
 	if len(finalResults) != expectedInRadius {
-		t.Errorf("Performance test failed correctness check: expected %d entities, got %d", 
+		t.Errorf("Performance test failed correctness check: expected %d entities, got %d",
 			expectedInRadius, len(finalResults))
 	}
-	
-	t.Logf("✓ Performance test passed: %d entities in 3x3 neighborhood, %d within AOI radius", 
+
+	t.Logf("✓ Performance test passed: %d entities in 3x3 neighborhood, %d within AOI radius",
 		entityCount, len(finalResults))
 }
