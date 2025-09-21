@@ -1,6 +1,48 @@
 # 📦 Collections
 
 Curated collections of related prompts, instructions, and chat modes organized around specific themes, workflows, or use cases.
+
+## Effective State and Precedence Rules
+
+When using collections alongside individual item settings, the effective state of each item follows these precedence rules:
+
+1. **Explicit overrides take precedence**: If an item has an explicit `true` or `false` setting in your config, that always takes priority over collections
+2. **Collections provide defaults**: If an item has no explicit setting (undefined), it inherits from enabled collections that contain it
+3. **Union behavior**: An item is enabled if it's in ANY enabled collection OR explicitly enabled
+4. **Shared items remain enabled**: Disabling one collection won't disable shared items if they're still required by other enabled collections
+
+### Examples
+
+**Explicit override wins:**
+```yaml
+collections:
+  testing-automation: true
+prompts:
+  playwright-generate-test: false  # Stays disabled despite collection being enabled
+```
+
+**Inheritance from collections:**
+```yaml  
+collections:
+  testing-automation: true
+prompts:
+  # playwright-generate-test: not specified - inherits from collection (enabled)
+```
+
+**Shared items protection:**
+```yaml
+collections:
+  frontend-web-dev: true      # Contains playwright-generate-test
+  testing-automation: false  # Also contains playwright-generate-test
+prompts:
+  # playwright-generate-test: enabled via frontend-web-dev
+```
+
+When you toggle collections, the CLI shows delta summaries:
+- 📈 Items newly enabled by the collection
+- 📉 Items disabled by disabling the collection  
+- 🚫 Items blocked by explicit overrides
+
 ### How to Use Collections
 
 **Browse Collections:**

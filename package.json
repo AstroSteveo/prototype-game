@@ -11,6 +11,7 @@
     "config:init": "node generate-config.js",
     "config:apply": "node apply-config.js",
     "config": "node awesome-copilot.js",
+    "test": "node test/run-tests.js",
     "contributors:add": "all-contributors add",
     "contributors:generate": "all-contributors generate",
     "contributors:check": "all-contributors check"
