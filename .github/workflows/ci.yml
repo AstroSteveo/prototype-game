@@ -44,14 +44,11 @@ jobs:
         cd backend
         go vet ./...
     
-    - name: Install golangci-lint
-      run: |
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
-    
     - name: Run golangci-lint
-      run: |
-        cd backend
-        $(go env GOPATH)/bin/golangci-lint run
+      uses: golangci/golangci-lint-action@v4
+      with:
+        version: v1.54.2
+        working-directory: backend
 
   # Unit Tests
   test:
