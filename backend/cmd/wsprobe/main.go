@@ -159,7 +159,7 @@ func (c *GameClient) printPlayerStatus() {
 	} else {
 		fmt.Println("No skills developed")
 	}
-	fmt.Println("=====================\n")
+	fmt.Println("=====================")
 }
 
 func (c *GameClient) runBasicProbe(moveX, moveZ float64) {
