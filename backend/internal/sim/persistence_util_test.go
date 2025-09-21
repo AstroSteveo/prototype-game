@@ -37,20 +37,20 @@ func TestDeserializePlayerData_T051(t *testing.T) {
 		Durability: 1.0,
 	}
 
+	// Add some skills first (required for equipping items)
+	player.Skills["melee"] = 15
+	player.Skills["defense"] = 8
+
 	err := playerMgr.AddItemToInventory(player, ironSword, CompartmentBackpack)
 	if err != nil {
 		t.Fatalf("Failed to add item to inventory: %v", err)
 	}
 
-	// Equip an item
+	// Equip an item (now that skills are sufficient)
 	err = playerMgr.EquipItem(player, ironSword.InstanceID, SlotMainHand, time.Now())
 	if err != nil {
 		t.Fatalf("Failed to equip item: %v", err)
 	}
-
-	// Add some skills
-	player.Skills["melee"] = 15
-	player.Skills["defense"] = 8
 
 	// Serialize the player state
 	serializedState, err := SerializePlayerData(player)

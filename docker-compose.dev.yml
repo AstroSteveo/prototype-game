@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Game Backend Services (Development Mode)
+  prototype-game-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"  # Gateway
+      - "8081:8081"  # Simulation
+    environment:
+      - LOG_LEVEL=debug
+      - SPATIAL_CELL_SIZE=500
+      - TICK_RATE=20
+    volumes:
+      - .:/app:ro
+      - ./backend/logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - game-dev-network
+
+  # PostgreSQL for local development
+  postgres-dev:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: gamedb_dev
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: devpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - game-dev-network
+
+  # Redis for local development
+  redis-dev:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - game-dev-network
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  game-dev-network:
+    driver: bridge
