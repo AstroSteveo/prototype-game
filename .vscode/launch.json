@@ -1,0 +1,112 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Gateway",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/backend/cmd/gateway",
+            "args": [
+                "-port", "8080",
+                "-sim", "localhost:8081"
+            ],
+            "env": {
+                "LOG_LEVEL": "debug"
+            },
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "preLaunchTask": "build-gateway"
+        },
+        {
+            "name": "Debug Simulation",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/backend/cmd/sim",
+            "args": [
+                "-port", "8081"
+            ],
+            "env": {
+                "LOG_LEVEL": "debug"
+            },
+            "buildFlags": "-tags ws",
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal",
+            "preLaunchTask": "build-sim"
+        },
+        {
+            "name": "Debug WSProbe",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/backend/cmd/wsprobe",
+            "args": [
+                "-url", "ws://localhost:8081/ws",
+                "-token", "${input:authToken}"
+            ],
+            "env": {
+                "LOG_LEVEL": "debug"
+            },
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Current File",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Tests",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/backend",
+            "args": [
+                "-test.v",
+                "-test.race"
+            ],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Single Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}",
+            "args": [
+                "-test.run",
+                "${input:testName}",
+                "-test.v"
+            ],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Attach to Process",
+            "type": "go",
+            "request": "attach",
+            "mode": "local",
+            "processId": "${command:pickProcess}"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "authToken",
+            "description": "Authentication token for WSProbe",
+            "default": "dev-token",
+            "type": "promptString"
+        },
+        {
+            "id": "testName",
+            "description": "Name of the test to run",
+            "default": ".*",
+            "type": "promptString"
+        }
+    ]
+}

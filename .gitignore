@@ -1,22 +1,41 @@
 # OS/editor
 .DS_Store
 .idea/
-.vscode/
 
 # Build artifacts
 backend/bin/
-
-# Runtime artifacts
 backend/logs/
 backend/.pids/
 
-# Backups & local logs
+# Runtime artifacts
 *.backup
 *.pre-wiki-backup
 err.log
+
+# Performance test results
+performance_tests_*/
 
 # Godot MCP server - ignored because it's a paid plugin
 client/addons/gdai-mcp-plugin-godot/backend/sim
 
 # Awesome Copilot generated files
 .awesome-copilot/
+
+# Environment files with secrets
+.env.local
+.env.production.local
+
+# Docker volumes
+postgres_data/
+redis_data/
+prometheus_data/
+grafana_data/
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+*.tmp
+*.temp

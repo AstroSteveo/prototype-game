@@ -1,0 +1,102 @@
+{
+    "go.buildOnSave": "workspace",
+    "go.lintOnSave": "workspace",
+    "go.vetOnSave": "workspace",
+    "go.formatTool": "goimports",
+    "go.useLanguageServer": true,
+    "go.languageServerExperimentalFeatures": {
+        "diagnostics": true,
+        "documentLink": true
+    },
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": [
+        "--fast"
+    ],
+    "go.buildTags": "ws",
+    "go.testFlags": [
+        "-v",
+        "-race"
+    ],
+    "go.testTimeout": "30s",
+    "go.coverOnSave": false,
+    "go.coverOnSingleTest": true,
+    "go.coverMode": "atomic",
+    "go.toolsManagement.checkForUpdates": "local",
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true,
+        "source.fixAll": true
+    },
+    "editor.rulers": [
+        140
+    ],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false,
+    "editor.detectIndentation": false,
+    "[go]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": false,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
+    },
+    "[json]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+    },
+    "[yaml]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+    },
+    "[markdown]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "files.trimTrailingWhitespace": false
+    },
+    "makefile.configureOnOpen": true,
+    "docker.showStartPage": false,
+    "rest-client.environmentVariables": {
+        "local": {
+            "gateway": "http://localhost:8080",
+            "sim": "http://localhost:8081"
+        },
+        "docker": {
+            "gateway": "http://localhost:8080",
+            "sim": "http://localhost:8081"
+        }
+    },
+    "todo-tree.general.tags": [
+        "TODO",
+        "FIXME",
+        "HACK",
+        "NOTE",
+        "BUG"
+    ],
+    "todo-tree.highlights.enabled": true,
+    "cSpell.words": [
+        "gamedb",
+        "gameuser",
+        "gamepass",
+        "healthz",
+        "nhooyr",
+        "prometheus",
+        "golang",
+        "goroutines",
+        "websocket",
+        "godot"
+    ],
+    "terminal.integrated.env.linux": {
+        "CGO_ENABLED": "1"
+    },
+    "terminal.integrated.env.osx": {
+        "CGO_ENABLED": "1"
+    },
+    "terminal.integrated.env.windows": {
+        "CGO_ENABLED": "1"
+    }
+}
