@@ -15,8 +15,8 @@ backend/.pids/
 *.pre-wiki-backup
 err.log
 
-# Artifacts from the Coder AI agent
-.code/
-
 # Godot MCP server - ignored because it's a paid plugin
 client/addons/gdai-mcp-plugin-godot/backend/sim
+
+# Awesome Copilot generated files
+.awesome-copilot/
