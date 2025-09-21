@@ -331,12 +331,12 @@ func TestEquipValidationMatrix(t *testing.T) {
 				Equipment: NewEquipment(),
 				Skills:    make(map[string]int),
 			}
-			
+
 			// Set player skills for this test case
 			for skill, level := range tc.playerSkills {
 				player.Skills[skill] = level
 			}
-			
+
 			pm.InitializePlayer(player)
 
 			// Add test item to inventory
@@ -359,23 +359,23 @@ func TestEquipValidationMatrix(t *testing.T) {
 			// Verify expected result
 			if tc.expectError != nil {
 				if err != tc.expectError {
-					t.Errorf("Case '%s': Expected error %v, got %v. %s", 
+					t.Errorf("Case '%s': Expected error %v, got %v. %s",
 						tc.name, tc.expectError, err, tc.description)
 				}
 			} else {
 				if err != nil {
-					t.Errorf("Case '%s': Expected success, got error %v. %s", 
+					t.Errorf("Case '%s': Expected success, got error %v. %s",
 						tc.name, err, tc.description)
 				} else {
 					// Verify item was actually equipped
 					equippedItem := player.Equipment.GetSlot(tc.targetSlot)
 					if equippedItem == nil || equippedItem.Instance.InstanceID != instance.InstanceID {
-						t.Errorf("Case '%s': Item was not properly equipped. %s", 
+						t.Errorf("Case '%s': Item was not properly equipped. %s",
 							tc.name, tc.description)
 					}
 					// Verify item was removed from inventory
 					if player.Inventory.HasItem(instance.InstanceID) {
-						t.Errorf("Case '%s': Item should not remain in inventory when equipped. %s", 
+						t.Errorf("Case '%s': Item should not remain in inventory when equipped. %s",
 							tc.name, tc.description)
 					}
 				}
@@ -480,28 +480,28 @@ func TestEquipCooldownValidationMatrix(t *testing.T) {
 			// Verify expected result
 			if tc.expectError != nil {
 				if err != tc.expectError {
-					t.Errorf("Case '%s': Expected error %v, got %v. %s", 
+					t.Errorf("Case '%s': Expected error %v, got %v. %s",
 						tc.name, tc.expectError, err, tc.description)
 				}
 				// Verify item is still equipped when error expected
 				equippedItem := player.Equipment.GetSlot(tc.unequipSlot)
 				if equippedItem == nil || equippedItem.Instance.InstanceID != tc.equipItem {
-					t.Errorf("Case '%s': Item should still be equipped after failed unequip. %s", 
+					t.Errorf("Case '%s': Item should still be equipped after failed unequip. %s",
 						tc.name, tc.description)
 				}
 			} else {
 				if err != nil {
-					t.Errorf("Case '%s': Expected success, got error %v. %s", 
+					t.Errorf("Case '%s': Expected success, got error %v. %s",
 						tc.name, err, tc.description)
 				} else {
 					// Verify item was unequipped
 					if !player.Equipment.IsSlotEmpty(tc.unequipSlot) {
-						t.Errorf("Case '%s': Slot should be empty after successful unequip. %s", 
+						t.Errorf("Case '%s': Slot should be empty after successful unequip. %s",
 							tc.name, tc.description)
 					}
 					// Verify item returned to inventory
 					if !player.Inventory.HasItem(tc.equipItem) {
-						t.Errorf("Case '%s': Item should be back in inventory after unequip. %s", 
+						t.Errorf("Case '%s': Item should be back in inventory after unequip. %s",
 							tc.name, tc.description)
 					}
 				}
@@ -603,14 +603,14 @@ func TestEquipSlotSwappingMatrix(t *testing.T) {
 	// Verify both items equipped in different slots
 	mainHandItem := player.Equipment.GetSlot(SlotMainHand)
 	offHandItem := player.Equipment.GetSlot(SlotOffHand)
-	
+
 	if mainHandItem == nil || mainHandItem.Instance.InstanceID != sword2.InstanceID {
 		t.Error("Sword should still be in main hand")
 	}
 	if offHandItem == nil || offHandItem.Instance.InstanceID != shield.InstanceID {
 		t.Error("Shield should be in off hand")
 	}
-	
+
 	// Verify inventory state
 	if !player.Inventory.HasItem(sword1.InstanceID) {
 		t.Error("First sword should still be in inventory")

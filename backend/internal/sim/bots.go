@@ -24,9 +24,6 @@ type botState struct {
 	OwnedCell  spatial.CellKey
 }
 
-// maintainBotDensity no-op for now.
-func (e *Engine) maintainBotDensity() {}
-
 // updateBotWithNeighbors applies wander behavior with simple separation using a snapshot
 // of neighbor positions taken at the start of the tick to avoid order-dependent effects.
 func (e *Engine) updateBotWithNeighbors(b *Entity, dt time.Duration, st *botState, neighbors map[string]spatial.Vec2) {
