@@ -175,7 +175,7 @@ LEFT JOIN game_events e ON p.id = e.player_id
 GROUP BY p.id, p.player_name, p.level, p.experience, p.created_at;
 
 -- Grants for application user (if needed)
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gameuser;
--- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gameuser;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gameuser;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gameuser;
 
 COMMIT;
