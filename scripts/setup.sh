@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Development setup script for Prototype Game Backend
 
 set -e
