@@ -13,7 +13,9 @@ const {
   ensureConfigStructure,
   countEnabledItems,
   getAllAvailableItems,
-  computeEffectiveItemStates
+  computeEffectiveItemStates,
+  extractItemName,
+  getSectionFromPath
 } = require("./config-manager");
 
 const CONFIG_FLAG_ALIASES = ["--config", "-c"];
@@ -196,11 +198,17 @@ function handleToggleCommand(rawArgs) {
   }
 
   const { config, header } = loadConfig(configPath);
+  
+  // Compute effective states BEFORE making changes (for all sections that need delta summary)
+  const beforeEffective = computeEffectiveItemStates(config);
+  
   const configCopy = {
     ...config,
     [section]: { ...config[section] }
   };
   const sectionState = configCopy[section];
+
+  let newState; // Track the new state for delta summary
 
   if (itemName === "all") {
     if (desiredState === null) {
@@ -214,6 +222,7 @@ function handleToggleCommand(rawArgs) {
     if (section === "instructions" && desiredState) {
       console.log("⚠️  Enabling every instruction can exceed Copilot Agent's context window. Consider enabling only what you need.");
     }
+    newState = desiredState;
   } else {
     if (!availableSet.has(itemName)) {
       const suggestion = findClosestMatch(itemName, availableItems);
@@ -224,7 +233,7 @@ function handleToggleCommand(rawArgs) {
     }
 
     const currentState = Boolean(sectionState[itemName]);
-    const newState = desiredState === null ? !currentState : desiredState;
+    newState = desiredState === null ? !currentState : desiredState;
     sectionState[itemName] = newState;
     console.log(`${newState ? "Enabled" : "Disabled"} ${SECTION_METADATA[section].singular} '${itemName}'.`);
   }
@@ -232,6 +241,7 @@ function handleToggleCommand(rawArgs) {
   const sanitizedConfig = ensureConfigStructure(configCopy);
   saveConfig(configPath, sanitizedConfig, header);
 
+  // Show traditional count for all sections
   const enabledCount = countEnabledItems(sanitizedConfig[section]);
   const totalAvailable = availableItems.length;
   const { totalCharacters } = calculateSectionFootprint(section, sanitizedConfig[section]);
@@ -241,7 +251,98 @@ function handleToggleCommand(rawArgs) {
     console.log(`Estimated ${SECTION_METADATA[section].label.toLowerCase()} context size: ${formatNumber(totalCharacters)} characters.`);
   }
   maybeWarnAboutContext(section, totalCharacters);
+
+  // For collections, show delta summary of what items are affected
+  if (section === 'collections' && itemName !== 'all') {
+    const afterEffective = computeEffectiveItemStates(sanitizedConfig);
+    showCollectionDelta(beforeEffective, afterEffective, itemName, newState);
+  }
+
   console.log("Run 'awesome-copilot apply' to copy updated selections into your project.");
+}
+
+/**
+ * Show delta summary for collection toggles
+ */
+function showCollectionDelta(beforeEffective, afterEffective, collectionName, collectionEnabled) {
+  if (!beforeEffective || !afterEffective) return;
+
+  const sections = ['prompts', 'instructions', 'chatmodes'];
+  let totalNewlyEnabled = 0;
+  let totalNewlyDisabled = 0;
+  let totalBlocked = 0;
+
+  sections.forEach(section => {
+    const beforeSet = beforeEffective[section];
+    const afterSet = afterEffective[section];
+    
+    // Find newly enabled items
+    const newlyEnabled = [];
+    afterSet.forEach(item => {
+      if (!beforeSet.has(item)) {
+        const reason = afterEffective.reasons[section][item];
+        if (reason.source === 'collections' && reason.via.includes(collectionName)) {
+          newlyEnabled.push(item);
+        }
+      }
+    });
+
+    // Find newly disabled items
+    const newlyDisabled = [];
+    beforeSet.forEach(item => {
+      if (!afterSet.has(item)) {
+        const beforeReason = beforeEffective.reasons[section][item];
+        if (beforeReason.source === 'collections' && beforeReason.via.includes(collectionName)) {
+          newlyDisabled.push(item);
+        }
+      }
+    });
+
+    // Find items blocked by explicit overrides
+    const blocked = [];
+    if (collectionEnabled) {
+      // When enabling a collection, find items that should be enabled but are blocked by explicit:false
+      const { parseCollectionYaml } = require("./yaml-parser");
+      const collectionPath = path.join(__dirname, "collections", `${collectionName}.collection.yml`);
+      if (fs.existsSync(collectionPath)) {
+        try {
+          const collection = parseCollectionYaml(collectionPath);
+          if (collection && collection.items) {
+            collection.items.forEach(item => {
+              const itemName = extractItemName(item.path);
+              const sectionFromPath = getSectionFromPath(item.path);
+              if (sectionFromPath === section) {
+                const reason = afterEffective.reasons[section][itemName];
+                if (reason && reason.source === 'explicit' && reason.value === false) {
+                  blocked.push(itemName);
+                }
+              }
+            });
+          }
+        } catch (error) {
+          // Ignore parsing errors
+        }
+      }
+    }
+
+    totalNewlyEnabled += newlyEnabled.length;
+    totalNewlyDisabled += newlyDisabled.length;
+    totalBlocked += blocked.length;
+  });
+
+  // Show concise summary
+  if (collectionEnabled) {
+    if (totalNewlyEnabled > 0) {
+      console.log(`📈 +${totalNewlyEnabled} items effectively enabled by this collection`);
+    }
+    if (totalBlocked > 0) {
+      console.log(`🚫 ${totalBlocked} items remain disabled due to explicit overrides`);
+    }
+  } else {
+    if (totalNewlyDisabled > 0) {
+      console.log(`📉 -${totalNewlyDisabled} items effectively disabled by disabling this collection`);
+    }
+  }
 }
 
 function extractConfigOption(rawArgs) {

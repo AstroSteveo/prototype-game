@@ -290,5 +290,7 @@ module.exports = {
   sortObjectKeys,
   countEnabledItems,
   getAllAvailableItems,
-  computeEffectiveItemStates
+  computeEffectiveItemStates,
+  extractItemName,
+  getSectionFromPath
 };
