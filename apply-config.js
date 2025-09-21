@@ -100,8 +100,11 @@ async function applyConfig(configPath = "awesome-copilot.config.yml") {
     collections: 0
   };
 
-  // Process collections first (they can enable individual items)
-  const enabledItems = new Set();
+  // Compute effective states using the new logic
+  const { computeEffectiveItemStates } = require("./config-manager");
+  const effectiveStates = computeEffectiveItemStates(config);
+
+  // Process collections first (for summary)
   if (config.collections) {
     for (const [collectionName, enabled] of Object.entries(config.collections)) {
       if (enabled) {
@@ -109,9 +112,6 @@ async function applyConfig(configPath = "awesome-copilot.config.yml") {
         if (fs.existsSync(collectionPath)) {
           const collection = parseCollectionYaml(collectionPath);
           if (collection && collection.items) {
-            collection.items.forEach(item => {
-              enabledItems.add(item.path);
-            });
             summary.collections++;
             console.log(`✓ Enabled collection: ${collectionName} (${collection.items.length} items)`);
           }
@@ -120,72 +120,26 @@ async function applyConfig(configPath = "awesome-copilot.config.yml") {
     }
   }
 
-  // Process prompts
-  if (config.prompts) {
-    for (const [promptName, enabled] of Object.entries(config.prompts)) {
-      if (enabled) {
-        const sourcePath = path.join(rootDir, "prompts", `${promptName}.prompt.md`);
-        if (fs.existsSync(sourcePath)) {
-          const destPath = path.join(outputDir, "prompts", `${promptName}.prompt.md`);
-          copyFile(sourcePath, destPath);
-          copiedCount++;
-          summary.prompts++;
-        }
-      }
-    }
-  }
+  // Process each section using effective states
+  const sections = [
+    { name: 'prompts', dir: 'prompts', ext: '.prompt.md' },
+    { name: 'instructions', dir: 'instructions', ext: '.instructions.md' },
+    { name: 'chatmodes', dir: 'chatmodes', ext: '.chatmode.md' }
+  ];
 
-  // Process instructions
-  if (config.instructions) {
-    for (const [instructionName, enabled] of Object.entries(config.instructions)) {
-      if (enabled) {
-        const sourcePath = path.join(rootDir, "instructions", `${instructionName}.instructions.md`);
-        if (fs.existsSync(sourcePath)) {
-          const destPath = path.join(outputDir, "instructions", `${instructionName}.instructions.md`);
-          copyFile(sourcePath, destPath);
-          copiedCount++;
-          summary.instructions++;
-        }
-      }
-    }
-  }
-
-  // Process chat modes
-  if (config.chatmodes) {
-    for (const [chatmodeName, enabled] of Object.entries(config.chatmodes)) {
-      if (enabled) {
-        const sourcePath = path.join(rootDir, "chatmodes", `${chatmodeName}.chatmode.md`);
-        if (fs.existsSync(sourcePath)) {
-          const destPath = path.join(outputDir, "chatmodes", `${chatmodeName}.chatmode.md`);
-          copyFile(sourcePath, destPath);
-          copiedCount++;
-          summary.chatmodes++;
-        }
-      }
-    }
-  }
-
-  // Process items from enabled collections
-  for (const itemPath of enabledItems) {
-    const sourcePath = path.join(rootDir, itemPath);
-    if (fs.existsSync(sourcePath)) {
-      const fileName = path.basename(itemPath);
-      let destPath;
-      
-      if (fileName.endsWith('.prompt.md')) {
-        destPath = path.join(outputDir, "prompts", fileName);
-      } else if (fileName.endsWith('.chatmode.md')) {
-        destPath = path.join(outputDir, "chatmodes", fileName);
-      } else if (fileName.endsWith('.instructions.md')) {
-        destPath = path.join(outputDir, "instructions", fileName);
-      }
-      
-      if (destPath && !fs.existsSync(destPath)) {
+  sections.forEach(section => {
+    const enabledItems = effectiveStates[section.name];
+    
+    enabledItems.forEach(itemName => {
+      const sourcePath = path.join(rootDir, section.dir, `${itemName}${section.ext}`);
+      if (fs.existsSync(sourcePath)) {
+        const destPath = path.join(outputDir, section.dir, `${itemName}${section.ext}`);
         copyFile(sourcePath, destPath);
         copiedCount++;
+        summary[section.name]++;
       }
-    }
-  }
+    });
+  });
 
   // Generate summary
   console.log("\n" + "=".repeat(50));

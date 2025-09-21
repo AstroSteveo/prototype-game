@@ -12,7 +12,8 @@ const {
   saveConfig,
   ensureConfigStructure,
   countEnabledItems,
-  getAllAvailableItems
+  getAllAvailableItems,
+  computeEffectiveItemStates
 } = require("./config-manager");
 
 const CONFIG_FLAG_ALIASES = ["--config", "-c"];
@@ -115,13 +116,24 @@ function handleListCommand(rawArgs) {
 
   const { config } = loadConfig(configPath);
   const sanitizedConfig = ensureConfigStructure(config);
+  const effectiveStates = computeEffectiveItemStates(sanitizedConfig);
 
   console.log(`📄 Configuration: ${configPath}`);
 
   sectionsToShow.forEach(section => {
     const availableItems = getAllAvailableItems(section);
-    const enabledCount = countEnabledItems(sanitizedConfig[section]);
-    const { totalCharacters } = calculateSectionFootprint(section, sanitizedConfig[section]);
+    let enabledCount, totalCharacters;
+    
+    if (section === 'collections') {
+      // For collections, use the traditional count
+      enabledCount = countEnabledItems(sanitizedConfig[section]);
+      totalCharacters = 0;
+    } else {
+      // For other sections, use effective state count
+      enabledCount = effectiveStates[section].size;
+      ({ totalCharacters } = calculateSectionFootprint(section, sanitizedConfig[section]));
+    }
+    
     const headingParts = [
       `${SECTION_METADATA[section].label} (${enabledCount}/${availableItems.length} enabled)`
     ];
@@ -138,8 +150,27 @@ function handleListCommand(rawArgs) {
     }
 
     availableItems.forEach(itemName => {
-      const isEnabled = Boolean(sanitizedConfig[section]?.[itemName]);
-      console.log(`  [${isEnabled ? "✓" : " "}] ${itemName}`);
+      let isEnabled, reasonText;
+      
+      if (section === 'collections') {
+        // Collections use the traditional boolean check
+        isEnabled = Boolean(sanitizedConfig[section]?.[itemName]);
+        reasonText = '';
+      } else {
+        // Other sections use effective state
+        isEnabled = effectiveStates[section].has(itemName);
+        const reason = effectiveStates.reasons[section][itemName];
+        
+        if (reason.source === 'explicit') {
+          reasonText = ` (explicit:${reason.value})`;
+        } else if (reason.source === 'collections' && reason.via.length > 0) {
+          reasonText = ` (via: ${reason.via.join(', ')})`;
+        } else {
+          reasonText = '';
+        }
+      }
+      
+      console.log(`  [${isEnabled ? "✓" : " "}] ${itemName}${reasonText}`);
     });
   });
 

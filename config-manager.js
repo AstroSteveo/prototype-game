@@ -158,6 +158,127 @@ function getAllAvailableItems(type) {
   return getAvailableItems(path.join(__dirname, meta.dir), meta.ext);
 }
 
+/**
+ * Compute effective item states based on explicit flags and enabled collections
+ * @param {Object} config - The full configuration object
+ * @returns {Object} - Object with effectively enabled Sets per section and reason metadata
+ */
+function computeEffectiveItemStates(config) {
+  const result = {
+    prompts: new Set(),
+    instructions: new Set(),
+    chatmodes: new Set(),
+    reasons: {
+      prompts: {},
+      instructions: {},
+      chatmodes: {}
+    }
+  };
+
+  // First, gather items from enabled collections
+  const { parseCollectionYaml } = require("./yaml-parser");
+  const collectionMembership = {
+    prompts: new Map(),
+    instructions: new Map(),
+    chatmodes: new Map()
+  };
+
+  if (config.collections) {
+    for (const [collectionName, enabled] of Object.entries(config.collections)) {
+      if (enabled) {
+        const collectionPath = path.join(__dirname, "collections", `${collectionName}.collection.yml`);
+        if (fs.existsSync(collectionPath)) {
+          try {
+            const collection = parseCollectionYaml(collectionPath);
+            if (collection && collection.items) {
+              collection.items.forEach(item => {
+                const itemName = extractItemName(item.path);
+                const section = getSectionFromPath(item.path);
+                
+                if (section && collectionMembership[section]) {
+                  if (!collectionMembership[section].has(itemName)) {
+                    collectionMembership[section].set(itemName, new Set());
+                  }
+                  collectionMembership[section].get(itemName).add(collectionName);
+                }
+              });
+            }
+          } catch (error) {
+            console.warn(`Warning: Failed to parse collection ${collectionName}: ${error.message}`);
+          }
+        }
+      }
+    }
+  }
+
+  // Now compute effective states for each section
+  const sections = ['prompts', 'instructions', 'chatmodes'];
+  sections.forEach(section => {
+    const sectionConfig = config[section] || {};
+    const availableItems = getAllAvailableItems(section);
+
+    availableItems.forEach(itemName => {
+      const explicitFlag = sectionConfig[itemName];
+      const inCollections = collectionMembership[section].get(itemName);
+
+      // Apply precedence rules:
+      // 1. Explicit boolean overrides collections
+      // 2. If no explicit flag (undefined), inherit from collections
+      // 3. Enabled if in any enabled collection, disabled otherwise
+      
+      let isEffectivelyEnabled = false;
+      let reason = { source: 'default', via: [] };
+
+      if (explicitFlag === true) {
+        isEffectivelyEnabled = true;
+        reason = { source: 'explicit', value: true };
+      } else if (explicitFlag === false) {
+        isEffectivelyEnabled = false;
+        reason = { source: 'explicit', value: false };
+      } else {
+        // undefined - inherit from collections
+        if (inCollections && inCollections.size > 0) {
+          isEffectivelyEnabled = true;
+          reason = { source: 'collections', via: Array.from(inCollections).sort() };
+        } else {
+          isEffectivelyEnabled = false;
+          reason = { source: 'default' };
+        }
+      }
+
+      if (isEffectivelyEnabled) {
+        result[section].add(itemName);
+      }
+      result.reasons[section][itemName] = reason;
+    });
+  });
+
+  return result;
+}
+
+/**
+ * Extract item name from path (removes directory and extension)
+ */
+function extractItemName(itemPath) {
+  const basename = path.basename(itemPath);
+  // Remove the extension (e.g., .prompt.md, .instructions.md, .chatmode.md)
+  return basename.replace(/\.(prompt|instructions|chatmode)\.md$/, '');
+}
+
+/**
+ * Determine section from item path
+ */
+function getSectionFromPath(itemPath) {
+  if (itemPath.includes('prompts/') && itemPath.endsWith('.prompt.md')) {
+    return 'prompts';
+  } else if (itemPath.includes('instructions/') && itemPath.endsWith('.instructions.md')) {
+    return 'instructions';
+  } else if (itemPath.includes('chatmodes/') && itemPath.endsWith('.chatmode.md')) {
+    return 'chatmodes';
+  }
+  return null;
+}
+
 module.exports = {
   DEFAULT_CONFIG_PATH,
   CONFIG_SECTIONS,
@@ -168,5 +289,6 @@ module.exports = {
   ensureConfigStructure,
   sortObjectKeys,
   countEnabledItems,
-  getAllAvailableItems
+  getAllAvailableItems,
+  computeEffectiveItemStates
 };
