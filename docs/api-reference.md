@@ -538,6 +538,8 @@ export GATEWAY_LOG_LEVEL="info"
 
 ## Error Codes & Handling
 
+> **📋 Complete Error Matrix**: For comprehensive error handling validation and complete error scenario mapping, see [Error Matrix Documentation](error-matrix.md).
+
 ### WebSocket Error Codes
 
 | Code | Name | Description | Client Action |
@@ -548,6 +550,33 @@ export GATEWAY_LOG_LEVEL="info"
 | 4003 | Player Not Found | Player ID not found in session | Reconnect and re-authenticate |
 | 4004 | Invalid Action | Action not allowed in current state | Check game state |
 | 4005 | World Full | Maximum player capacity reached | Try again later |
+
+### Equipment Operation Error Codes
+
+Equipment operations (equip/unequip) return specific error codes via `equipment_result` messages:
+
+| Code | Error | Description | Validation Rule |
+|------|-------|-------------|-----------------|
+| `success` | - | Operation completed successfully | - |
+| `illegal_slot` | `ErrIllegalSlot` | Item cannot be equipped to this slot | R1: Slot Compatibility Matrix |
+| `skill_gate` | `ErrSkillGate` | Insufficient skill level to equip item | R2: Skill Requirements Matrix |
+| `equip_locked` | `ErrEquipLocked` | Equipment slot is on cooldown | R3: Cooldown System Matrix |
+| `item_not_found` | `ErrItemNotFound` | Item not found in inventory | R4: Item Management Matrix |
+| `equip_failed` | Various | Generic equipment failure | - |
+
+**Example Equipment Error Response**:
+```json
+{
+  "type": "equipment_result",
+  "data": {
+    "success": false,
+    "operation": "equip",
+    "slot": "main_hand",
+    "code": "skill_gate",
+    "message": "Insufficient skill level to equip item"
+  }
+}
+```
 
 ### HTTP Error Codes
 
