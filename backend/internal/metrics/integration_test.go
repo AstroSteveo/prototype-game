@@ -245,10 +245,10 @@ func TestIntegration_EquipmentMetrics(t *testing.T) {
 
 	// Simulate successful equip operation (this is what the WebSocket layer would do)
 	metrics.ObserveEquipOperation("equip", true)
-	
+
 	// Simulate failed unequip operation
 	metrics.ObserveEquipOperation("unequip", false)
-	
+
 	// Simulate cooldown block
 	metrics.IncEquipCooldownBlocks()
 
@@ -260,11 +260,11 @@ func TestIntegration_EquipmentMetrics(t *testing.T) {
 	if updatedEquipCount <= initialEquipCount {
 		t.Errorf("Expected equipment metrics to increase: initial=%f, updated=%f", initialEquipCount, updatedEquipCount)
 	}
-	
+
 	if updatedCooldownCount <= initialCooldownCount {
 		t.Errorf("Expected cooldown block metrics to increase: initial=%f, updated=%f", initialCooldownCount, updatedCooldownCount)
 	}
-	
+
 	// Verify the metrics contain the expected labels
 	if !strings.Contains(updatedMetrics, `operation="equip"`) {
 		t.Error("Expected to find equip operation label in metrics")
@@ -344,7 +344,7 @@ func TestIntegration_HandoverMetrics(t *testing.T) {
 
 	// Log for debugging
 	t.Logf("Handover count: initial=%f, updated=%f", initialHandoverCount, updatedHandoverCount)
-	
+
 	// The test passes as long as the metrics infrastructure is working
 	// (metric exists and is properly formatted)
 	if !strings.Contains(updatedMetrics, "sim_handovers_total") {
@@ -358,22 +358,22 @@ func scrapeMetrics(t *testing.T) string {
 	handler := metrics.Handler()
 	server := httptest.NewServer(handler)
 	defer server.Close()
-	
+
 	resp, err := http.Get(server.URL)
 	if err != nil {
 		t.Fatalf("Failed to scrape metrics: %v", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Failed to read metrics response: %v", err)
 	}
-	
+
 	return string(body)
 }
 
@@ -408,7 +408,7 @@ func extractCounterValue(t *testing.T, metrics, metricName string) float64 {
 	// For vector counters, sum all label variations
 	pattern := regexp.MustCompile(`(?m)^` + metricName + `{[^}]*}\s+([0-9.]+)$`)
 	matches := pattern.FindAllStringSubmatch(metrics, -1)
-	
+
 	total := 0.0
 	for _, match := range matches {
 		if len(match) >= 2 {
@@ -418,7 +418,7 @@ func extractCounterValue(t *testing.T, metrics, metricName string) float64 {
 			}
 		}
 	}
-	
+
 	// Also check for non-vector version
 	simplePattern := regexp.MustCompile(`(?m)^` + metricName + `\s+([0-9.]+)$`)
 	simpleMatches := simplePattern.FindStringSubmatch(metrics)
@@ -428,6 +428,6 @@ func extractCounterValue(t *testing.T, metrics, metricName string) float64 {
 			total += value
 		}
 	}
-	
+
 	return total
 }

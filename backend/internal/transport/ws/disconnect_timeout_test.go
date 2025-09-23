@@ -159,7 +159,7 @@ func TestWebSocketDisconnectPersistence_TimeoutHandling(t *testing.T) {
 			t.Errorf("Slow disconnect persistence took too long: %v", disconnectTime)
 		}
 
-		// Try to verify state was eventually persisted 
+		// Try to verify state was eventually persisted
 		// Note: With slow store, this might timeout, which is expected behavior
 		persistedState, exists, err := slowStore.Load(context.Background(), playerID)
 		if err != nil {
