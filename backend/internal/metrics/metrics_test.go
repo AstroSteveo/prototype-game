@@ -191,12 +191,12 @@ func TestObserveEquipOperation(t *testing.T) {
 	}
 	
 	// Check for specific label combinations
-	successPattern := regexp.MustCompile(`sim_equip_operations_total{[^}]*operation="equip"[^}]*result="success"[^}]*}\s+([1-9]\d*)`)
+	successPattern := regexp.MustCompile(`sim_equip_operations_total{[^}]*operation="equip"[^}]*result="success"[^}]*}\s+([1-9]\d*|1)`)
 	if !successPattern.MatchString(metrics) {
 		t.Fatal("Expected sim_equip_operations_total with operation=equip,result=success")
 	}
 	
-	failPattern := regexp.MustCompile(`sim_equip_operations_total{[^}]*operation="unequip"[^}]*result="failed"[^}]*}\s+([1-9]\d*)`)
+	failPattern := regexp.MustCompile(`sim_equip_operations_total{[^}]*operation="unequip"[^}]*result="failed"[^}]*}\s+([1-9]\d*|1)`)
 	if !failPattern.MatchString(metrics) {
 		t.Fatal("Expected sim_equip_operations_total with operation=unequip,result=failed")
 	}
