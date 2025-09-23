@@ -216,7 +216,7 @@ func TestIncEquipCooldownBlocks(t *testing.T) {
 	}
 	
 	// Check counter value
-	re := regexp.MustCompile(`(?m)^sim_equip_cooldown_blocks_total\s+([1-9]\d*)`)
+	re := regexp.MustCompile(`(?m)^sim_equip_cooldown_blocks_total\s+([1-9]\d*|1)`)
 	matches := re.FindStringSubmatch(metrics)
 	if len(matches) < 2 {
 		t.Fatal("Expected sim_equip_cooldown_blocks_total > 0")
