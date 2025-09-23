@@ -39,7 +39,7 @@ func TestObserveTickDuration(t *testing.T) {
 	}
 
 	// Check bucket count increased (at least one sample in a bucket)
-	bucketPattern := regexp.MustCompile(`sim_tick_time_ms_bucket{[^}]*le="[^"]*"}\s+([1-9]\d*)`)
+	bucketPattern := regexp.MustCompile(`sim_tick_time_ms_bucket{[^}]*le="[^"]*"}\s+([1-9]\d*|1)`)
 	if !bucketPattern.MatchString(metrics) {
 		t.Fatal("Expected at least one sample in sim_tick_time_ms histogram buckets")
 	}
@@ -60,7 +60,7 @@ func TestObserveSnapshotBytes(t *testing.T) {
 	}
 
 	// Check bucket count increased
-	bucketPattern := regexp.MustCompile(`ws_snapshot_bytes_bucket{[^}]*le="[^"]*"}\s+([1-9]\d*)`)
+	bucketPattern := regexp.MustCompile(`ws_snapshot_bytes_bucket{[^}]*le="[^"]*"}\s+([1-9]\d*|1)`)
 	if !bucketPattern.MatchString(metrics) {
 		t.Fatal("Expected at least one sample in ws_snapshot_bytes histogram buckets")
 	}
@@ -81,7 +81,7 @@ func TestObserveEntitiesInAOI(t *testing.T) {
 	}
 
 	// Check bucket count increased
-	bucketPattern := regexp.MustCompile(`sim_entities_in_aoi_bucket{[^}]*le="[^"]*"}\s+([1-9]\d*)`)
+	bucketPattern := regexp.MustCompile(`sim_entities_in_aoi_bucket{[^}]*le="[^"]*"}\s+([1-9]\d*|1)`)
 	if !bucketPattern.MatchString(metrics) {
 		t.Fatal("Expected at least one sample in sim_entities_in_aoi histogram buckets")
 	}
@@ -102,7 +102,7 @@ func TestObserveHandoverLatency(t *testing.T) {
 	}
 
 	// Check bucket count increased
-	bucketPattern := regexp.MustCompile(`sim_handover_latency_ms_bucket{[^}]*le="[^"]*"}\s+([1-9]\d*)`)
+	bucketPattern := regexp.MustCompile(`sim_handover_latency_ms_bucket{[^}]*le="[^"]*"}\s+([1-9]\d*|1)`)
 	if !bucketPattern.MatchString(metrics) {
 		t.Fatal("Expected at least one sample in sim_handover_latency_ms histogram buckets")
 	}
