@@ -36,20 +36,20 @@ func TestT032_EncumbranceIncludingEquippedItems(t *testing.T) {
 			name:                    "EquippedOnly_LightLoad",
 			inventoryItems:          []testItem{},
 			equippedItems:           []equippedTestItem{{templateID: "sword_iron", slot: SlotMainHand}}, // 3.5kg
-			expectedWeightPct:       0.0175, // 3.5kg / 200kg = 1.75%
+			expectedWeightPct:       0.0175,                                                             // 3.5kg / 200kg = 1.75%
 			expectedMovementPenalty: 1.0,
 			description:             "Light equipped items only should have minimal encumbrance",
 		},
 		{
 			name: "CombinedLoad_ModerateEncumbrance",
 			inventoryItems: []testItem{
-				{templateID: "armor_leather", quantity: 2}, // 2 * 5kg = 10kg
+				{templateID: "armor_leather", quantity: 2},  // 2 * 5kg = 10kg
 				{templateID: "potion_health", quantity: 50}, // 50 * 0.1kg = 5kg
 			},
 			equippedItems: []equippedTestItem{
-				{templateID: "sword_iron", slot: SlotMainHand},   // 3.5kg
-				{templateID: "shield_wood", slot: SlotOffHand},   // 2.0kg
-				{templateID: "armor_leather", slot: SlotChest},   // 5.0kg
+				{templateID: "sword_iron", slot: SlotMainHand}, // 3.5kg
+				{templateID: "shield_wood", slot: SlotOffHand}, // 2.0kg
+				{templateID: "armor_leather", slot: SlotChest}, // 5.0kg
 			},
 			expectedWeightPct:       0.1275, // (10+5+3.5+2+5) / 200 = 12.75%
 			expectedMovementPenalty: 1.0,    // No penalty under 80%
@@ -80,18 +80,18 @@ func TestT032_EncumbranceIncludingEquippedItems(t *testing.T) {
 			description:             "Overweight load should trigger severe movement penalty beyond 100%",
 		},
 		{
-			name: "FullEquipmentSet_CompleteArmor",
+			name:           "FullEquipmentSet_CompleteArmor",
 			inventoryItems: []testItem{},
 			equippedItems: []equippedTestItem{
-				{templateID: "sword_iron", slot: SlotMainHand},     // 3.5kg
-				{templateID: "shield_wood", slot: SlotOffHand},     // 2.0kg
-				{templateID: "armor_leather", slot: SlotChest},     // 5.0kg
-				{templateID: "helmet_iron", slot: SlotHead},        // 2.5kg (if template exists)
-				{templateID: "legs_chain", slot: SlotLegs},         // 4.0kg (if template exists)
-				{templateID: "boots_leather", slot: SlotFeet},      // 1.0kg (if template exists)
+				{templateID: "sword_iron", slot: SlotMainHand}, // 3.5kg
+				{templateID: "shield_wood", slot: SlotOffHand}, // 2.0kg
+				{templateID: "armor_leather", slot: SlotChest}, // 5.0kg
+				{templateID: "helmet_iron", slot: SlotHead},    // 2.5kg (if template exists)
+				{templateID: "legs_chain", slot: SlotLegs},     // 4.0kg (if template exists)
+				{templateID: "boots_leather", slot: SlotFeet},  // 1.0kg (if template exists)
 			},
-			expectedWeightPct:       0.09,  // Total equipped weight / 200kg = 18kg / 200kg = 9%
-			expectedMovementPenalty: 1.0,   // No penalty under 80%
+			expectedWeightPct:       0.09, // Total equipped weight / 200kg = 18kg / 200kg = 9%
+			expectedMovementPenalty: 1.0,  // No penalty under 80%
 			description:             "Full equipment set should be calculated correctly",
 		},
 	}
@@ -101,7 +101,7 @@ func TestT032_EncumbranceIncludingEquippedItems(t *testing.T) {
 			// Setup
 			pm := NewPlayerManager()
 			pm.CreateTestItemTemplates()
-			
+
 			// Register additional templates for comprehensive testing
 			pm.RegisterItemTemplate(&ItemTemplate{
 				ID:          "helmet_iron",
@@ -111,7 +111,7 @@ func TestT032_EncumbranceIncludingEquippedItems(t *testing.T) {
 				Bulk:        2,
 				SkillReq:    map[string]int{},
 			})
-			
+
 			pm.RegisterItemTemplate(&ItemTemplate{
 				ID:          "legs_chain",
 				DisplayName: "Chain Leggings",
@@ -120,7 +120,7 @@ func TestT032_EncumbranceIncludingEquippedItems(t *testing.T) {
 				Bulk:        3,
 				SkillReq:    map[string]int{},
 			})
-			
+
 			pm.RegisterItemTemplate(&ItemTemplate{
 				ID:          "boots_leather",
 				DisplayName: "Leather Boots",
@@ -132,15 +132,15 @@ func TestT032_EncumbranceIncludingEquippedItems(t *testing.T) {
 
 			player := createTestPlayer()
 			pm.InitializePlayer(player)
-			
+
 			// Set up skills required for equipment
 			player.Skills = map[string]int{
 				"melee":   15,
 				"defense": 10,
 			}
-			
+
 			// Increase inventory limits for testing
-			player.Inventory.WeightLimit = 200.0 // Double the default limit
+			player.Inventory.WeightLimit = 200.0                        // Double the default limit
 			player.Inventory.CompartmentCaps[CompartmentBackpack] = 100 // Increase bulk limit
 
 			// Add inventory items
@@ -165,13 +165,13 @@ func TestT032_EncumbranceIncludingEquippedItems(t *testing.T) {
 					Quantity:   1,
 					Durability: 1.0,
 				}
-				
+
 				// Add to inventory first
 				err := pm.AddItemToInventory(player, instance, CompartmentBackpack)
 				if err != nil {
 					t.Fatalf("Failed to add item to inventory before equipping %s: %v", item.templateID, err)
 				}
-				
+
 				// Then equip
 				err = pm.EquipItem(player, instance.InstanceID, item.slot, time.Now())
 				if err != nil {
@@ -188,13 +188,13 @@ func TestT032_EncumbranceIncludingEquippedItems(t *testing.T) {
 			encumbrance := pm.GetPlayerEncumbrance(player)
 
 			// Validate weight percentage
-			if abs(encumbrance.WeightPct - tt.expectedWeightPct) > 0.001 {
+			if abs(encumbrance.WeightPct-tt.expectedWeightPct) > 0.001 {
 				t.Errorf("Weight percentage mismatch: got %.3f, expected %.3f (description: %s)",
 					encumbrance.WeightPct, tt.expectedWeightPct, tt.description)
 			}
 
 			// Validate movement penalty
-			if abs(encumbrance.MovementPenalty - tt.expectedMovementPenalty) > 0.001 {
+			if abs(encumbrance.MovementPenalty-tt.expectedMovementPenalty) > 0.001 {
 				t.Errorf("Movement penalty mismatch: got %.3f, expected %.3f (description: %s)",
 					encumbrance.MovementPenalty, tt.expectedMovementPenalty, tt.description)
 			}
@@ -216,11 +216,11 @@ func TestT032_EncumbranceEdgeCases(t *testing.T) {
 
 		player := createTestPlayer()
 		pm.InitializePlayer(player)
-		
+
 		// Set up skills and limits for testing
 		player.Skills = map[string]int{"melee": 15, "defense": 10}
 		player.Inventory.WeightLimit = 200.0
-		
+
 		// Add exactly 160kg total (80% of 200kg threshold)
 		pm.RegisterItemTemplate(&ItemTemplate{
 			ID:     "test_156_5kg",
@@ -248,7 +248,7 @@ func TestT032_EncumbranceEdgeCases(t *testing.T) {
 		pm.EquipItem(player, swordInstance.InstanceID, SlotMainHand, time.Now())
 
 		encumbrance := pm.GetPlayerEncumbrance(player)
-		
+
 		// At exactly 80%, should still have no movement penalty
 		if encumbrance.WeightPct != 0.8 {
 			t.Errorf("Expected exactly 80%% weight, got %.3f", encumbrance.WeightPct)
@@ -264,11 +264,11 @@ func TestT032_EncumbranceEdgeCases(t *testing.T) {
 
 		player := createTestPlayer()
 		pm.InitializePlayer(player)
-		
+
 		// Set up skills and limits for testing
 		player.Skills = map[string]int{"melee": 15, "defense": 10}
 		player.Inventory.WeightLimit = 200.0
-		
+
 		// Add slightly over 160kg total (80.1% of 200kg threshold)
 		pm.RegisterItemTemplate(&ItemTemplate{
 			ID:     "test_156_7kg",
@@ -296,7 +296,7 @@ func TestT032_EncumbranceEdgeCases(t *testing.T) {
 		pm.EquipItem(player, swordInstance.InstanceID, SlotMainHand, time.Now())
 
 		encumbrance := pm.GetPlayerEncumbrance(player)
-		
+
 		// Just over 80% should trigger movement penalty
 		if encumbrance.WeightPct <= 0.8 {
 			t.Errorf("Expected weight over 80%%, got %.3f", encumbrance.WeightPct)
@@ -314,7 +314,7 @@ func TestT032_AcceptanceCriteria(t *testing.T) {
 
 	player := createTestPlayer()
 	pm.InitializePlayer(player)
-	
+
 	// Set up skills for equipment
 	player.Skills = map[string]int{"melee": 15, "defense": 10}
 	player.Inventory.WeightLimit = 200.0
@@ -344,7 +344,7 @@ func TestT032_AcceptanceCriteria(t *testing.T) {
 		Durability: 1.0,
 	}
 	pm.AddItemToInventory(player, heavyInv, CompartmentBackpack)
-	
+
 	// Temporarily reduce weight limit to trigger penalty with current load
 	player.Inventory.WeightLimit = 100.0
 
@@ -352,17 +352,17 @@ func TestT032_AcceptanceCriteria(t *testing.T) {
 	if encumbrance.MovementPenalty >= 1.0 {
 		t.Errorf("✗ ACCEPTANCE CRITERIA FAILED: Heavy load should penalize movement. Got penalty: %.3f", encumbrance.MovementPenalty)
 	} else {
-		t.Logf("✅ ACCEPTANCE CRITERIA PASSED: Heavy load (%.1fkg, %.1f%%) triggers movement penalty: %.3f", 
+		t.Logf("✅ ACCEPTANCE CRITERIA PASSED: Heavy load (%.1fkg, %.1f%%) triggers movement penalty: %.3f",
 			encumbrance.CurrentWeight, encumbrance.WeightPct*100, encumbrance.MovementPenalty)
 	}
 
 	// Test scenario 3: Encumbrance should include both inventory and equipped items
 	expectedTotalWeight := 3.5 + 85.0 // sword + anvil
-	if abs(encumbrance.CurrentWeight - expectedTotalWeight) > 0.001 {
-		t.Errorf("✗ ACCEPTANCE CRITERIA FAILED: Encumbrance should include both inventory and equipped items. Expected %.1fkg, got %.1fkg", 
+	if abs(encumbrance.CurrentWeight-expectedTotalWeight) > 0.001 {
+		t.Errorf("✗ ACCEPTANCE CRITERIA FAILED: Encumbrance should include both inventory and equipped items. Expected %.1fkg, got %.1fkg",
 			expectedTotalWeight, encumbrance.CurrentWeight)
 	} else {
-		t.Logf("✅ ACCEPTANCE CRITERIA PASSED: Encumbrance correctly includes inventory (%.1fkg) + equipped (%.1fkg) = %.1fkg total", 
+		t.Logf("✅ ACCEPTANCE CRITERIA PASSED: Encumbrance correctly includes inventory (%.1fkg) + equipped (%.1fkg) = %.1fkg total",
 			85.0, 3.5, encumbrance.CurrentWeight)
 	}
 

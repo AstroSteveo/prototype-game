@@ -192,14 +192,14 @@ func TestT070_ErrorMatrixValidation(t *testing.T) {
 				// Validate result
 				if scenario.expectError != nil {
 					if err != scenario.expectError {
-						t.Errorf("T-070 FAILED: %s - Expected error %v, got %v", 
+						t.Errorf("T-070 FAILED: %s - Expected error %v, got %v",
 							scenario.description, scenario.expectError, err)
 					} else {
 						t.Logf("T-070 SUCCESS: %s", scenario.description)
 					}
 				} else {
 					if err != nil {
-						t.Errorf("T-070 FAILED: %s - Expected success, got error %v", 
+						t.Errorf("T-070 FAILED: %s - Expected success, got error %v",
 							scenario.description, err)
 					} else {
 						t.Logf("T-070 SUCCESS: %s", scenario.description)
@@ -288,14 +288,14 @@ func TestT070_ErrorMatrixValidation(t *testing.T) {
 				// Validate result
 				if scenario.expectError != nil {
 					if err != scenario.expectError {
-						t.Errorf("T-070 FAILED: %s - Expected error %v, got %v", 
+						t.Errorf("T-070 FAILED: %s - Expected error %v, got %v",
 							scenario.description, scenario.expectError, err)
 					} else {
 						t.Logf("T-070 SUCCESS: %s", scenario.description)
 					}
 				} else {
 					if err != nil {
-						t.Errorf("T-070 FAILED: %s - Expected success, got error %v", 
+						t.Errorf("T-070 FAILED: %s - Expected success, got error %v",
 							scenario.description, err)
 					} else {
 						t.Logf("T-070 SUCCESS: %s", scenario.description)
@@ -309,7 +309,7 @@ func TestT070_ErrorMatrixValidation(t *testing.T) {
 		// Validate that error constants are properly defined and consistent
 		errorMappings := map[error]string{
 			ErrIllegalSlot:       "illegal_slot",
-			ErrSkillGate:         "skill_gate", 
+			ErrSkillGate:         "skill_gate",
 			ErrEquipLocked:       "equip_locked",
 			ErrItemNotFound:      "item_not_found",
 			ErrInsufficientSpace: "insufficient_space",
@@ -330,11 +330,11 @@ func TestT070_ErrorMatrixValidation(t *testing.T) {
 				continue
 			}
 
-			t.Logf("T-070 SUCCESS: Error %v -> code %s has message: %s", 
+			t.Logf("T-070 SUCCESS: Error %v -> code %s has message: %s",
 				err, expectedCode, err.Error())
 		}
 
-		// Verify error type constants 
+		// Verify error type constants
 		if EquipCooldown != 2*time.Second {
 			t.Errorf("T-070 FAILED: EquipCooldown constant mismatch - expected 2s, got %v", EquipCooldown)
 		} else {
@@ -344,7 +344,7 @@ func TestT070_ErrorMatrixValidation(t *testing.T) {
 
 	t.Log("T-070 ERROR MATRIX VALIDATION COMPLETE")
 	t.Log("✅ Slot compatibility matrix validated")
-	t.Log("✅ Skill requirements matrix validated") 
+	t.Log("✅ Skill requirements matrix validated")
 	t.Log("✅ Cooldown system matrix validated")
 	t.Log("✅ Error code consistency validated")
 }
@@ -388,7 +388,7 @@ func TestErrorMatrixDocumentationAlignment(t *testing.T) {
 				validSlots:  []SlotID{SlotMainHand},
 			},
 			{
-				templateID:  "shield_wood", 
+				templateID:  "shield_wood",
 				description: "Shield (Off Hand)",
 				validSlots:  []SlotID{SlotOffHand},
 			},
@@ -402,7 +402,7 @@ func TestErrorMatrixDocumentationAlignment(t *testing.T) {
 		for _, item := range documentedItems {
 			template, exists := pm.GetItemTemplate(item.templateID)
 			if !exists {
-				t.Errorf("Documentation error: Item %s (%s) not found in templates", 
+				t.Errorf("Documentation error: Item %s (%s) not found in templates",
 					item.templateID, item.description)
 				continue
 			}
@@ -410,7 +410,7 @@ func TestErrorMatrixDocumentationAlignment(t *testing.T) {
 			// Verify documented valid slots
 			for _, slot := range item.validSlots {
 				if !template.Allows(slot) {
-					t.Errorf("Documentation error: %s should allow slot %s according to docs", 
+					t.Errorf("Documentation error: %s should allow slot %s according to docs",
 						item.description, slot)
 				} else {
 					t.Logf("Documentation validated: %s allows slot %s", item.description, slot)

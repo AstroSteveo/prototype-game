@@ -269,7 +269,7 @@ func TestCheckpointPersistence_TimeoutHandling(t *testing.T) {
 
 		// Request checkpoint save
 		eng.RequestPlayerCheckpoint(checkpointCtx, playerID)
-		
+
 		// Cancel immediately
 		cancel()
 
